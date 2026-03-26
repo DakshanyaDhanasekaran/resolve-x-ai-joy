@@ -1,25 +1,65 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Index from "./pages/Index.tsx";
-import NotFound from "./pages/NotFound.tsx";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ComplaintProvider } from "@/contexts/ComplaintContext";
+import DashboardLayout from "@/components/DashboardLayout";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import UserDashboard from "@/pages/UserDashboard";
+import SubmitComplaint from "@/pages/SubmitComplaint";
+import TrackComplaints from "@/pages/TrackComplaints";
+import AdminDashboard from "@/pages/AdminDashboard";
+import AdminComplaints from "@/pages/AdminComplaints";
+import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
+
+const ProtectedRoute = ({ children, role }: { children: React.ReactNode; role?: "admin" | "user" }) => {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center"><span className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (role && user.role !== role) return <Navigate to={user.role === "admin" ? "/admin" : "/dashboard"} replace />;
+  return <>{children}</>;
+};
+
+const AppRoutes = () => {
+  const { user } = useAuth();
+
+  return (
+    <Routes>
+      <Route path="/" element={user ? <Navigate to={user.role === "admin" ? "/admin" : "/dashboard"} replace /> : <Navigate to="/login" replace />} />
+      <Route path="/login" element={user ? <Navigate to={user.role === "admin" ? "/admin" : "/dashboard"} replace /> : <Login />} />
+      <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Register />} />
+
+      {/* User routes */}
+      <Route path="/dashboard" element={<ProtectedRoute role="user"><DashboardLayout><UserDashboard /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/submit" element={<ProtectedRoute role="user"><DashboardLayout><SubmitComplaint /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/track" element={<ProtectedRoute role="user"><DashboardLayout><TrackComplaints /></DashboardLayout></ProtectedRoute>} />
+
+      {/* Admin routes */}
+      <Route path="/admin" element={<ProtectedRoute role="admin"><DashboardLayout><AdminDashboard /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/admin/complaints" element={<ProtectedRoute role="admin"><DashboardLayout><AdminComplaints /></DashboardLayout></ProtectedRoute>} />
+
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <ComplaintProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </ComplaintProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
