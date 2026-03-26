@@ -42,7 +42,44 @@ const AdminDashboard = () => {
       .filter((d) => d.count > 0);
   }, [complaints]);
 
-  const total = complaints.length;
+  // Weekly trend line chart (last 4 weeks simulated)
+  const weeklyTrend = useMemo(() => {
+    const weeks = ["Week 1", "Week 2", "Week 3", "Week 4"];
+    const now = new Date();
+    return weeks.map((week, i) => {
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - (3 - i) * 7);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 7);
+      const submitted = complaints.filter((c) => {
+        const d = new Date(c.createdAt);
+        return d >= weekStart && d < weekEnd;
+      }).length;
+      const resolvedCount = complaints.filter((c) => {
+        const d = new Date(c.updatedAt);
+        return c.status === "Resolved" && d >= weekStart && d < weekEnd;
+      }).length;
+      return { week, submitted, resolved: resolvedCount };
+    });
+  }, [complaints]);
+
+  // Daily trend for area chart
+  const dailyTrend = useMemo(() => {
+    const trendMap = new Map<string, { date: string; submitted: number; resolved: number }>();
+    complaints.forEach((c) => {
+      const day = new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      if (!trendMap.has(day)) trendMap.set(day, { date: day, submitted: 0, resolved: 0 });
+      const entry = trendMap.get(day)!;
+      entry.submitted += 1;
+      if (c.status === "Resolved") entry.resolved += 1;
+    });
+    return Array.from(trendMap.values()).sort(
+      (a, b) => new Date(`${a.date} 2026`).getTime() - new Date(`${b.date} 2026`).getTime()
+    );
+  }, [complaints]);
+
+  if (isLoading) return <DashboardSkeleton />;
+
   const pending = complaints.filter((c) => c.status === "Pending").length;
   const inProgress = complaints.filter((c) => c.status === "In Progress").length;
   const resolved = complaints.filter((c) => c.status === "Resolved").length;
