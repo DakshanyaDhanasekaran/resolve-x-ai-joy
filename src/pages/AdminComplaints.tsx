@@ -46,6 +46,18 @@ const AdminComplaints = () => {
     return result;
   }, [complaints, search, statusFilter, categoryFilter, sortKey, sortDir]);
 
+  if (isLoading) return <DashboardSkeleton />;
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("desc"); }
+  };
+
+  const SortIcon = ({ column }: { column: SortKey }) => {
+    if (sortKey !== column) return <ArrowUpDown className="w-3 h-3 opacity-40" />;
+    return sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary" /> : <ArrowDown className="w-3 h-3 text-primary" />;
+  };
+
   const statuses: Complaint["status"][] = ["Pending", "In Progress", "Resolved", "Rejected"];
   const statusBg: Record<string, string> = {
     Pending: "bg-warning/15 text-warning", "In Progress": "bg-accent/15 text-accent",
