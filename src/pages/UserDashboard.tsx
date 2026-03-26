@@ -4,12 +4,21 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   FileText, Clock, CheckCircle, AlertTriangle, Plus, ArrowRight,
-  TrendingUp, TrendingDown, Minus, Tag
+  TrendingUp, TrendingDown, Minus, Tag, Zap, Timer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Sparkline from "@/components/Sparkline";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import AnimatedCounter from "@/components/AnimatedCounter";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
+
+const CHART_TOOLTIP_STYLE = {
+  backgroundColor: "hsl(0, 0%, 100%)",
+  border: "1px solid hsl(220, 15%, 90%)",
+  borderRadius: "10px",
+  fontSize: "12px",
+  boxShadow: "0 4px 12px hsl(220 30% 12% / 0.08)",
+};
 
 const UserDashboard = () => {
   const { user } = useAuth();
@@ -22,27 +31,33 @@ const UserDashboard = () => {
   const inProgress = userComplaints.filter((c) => c.status === "In Progress").length;
   const resolved = userComplaints.filter((c) => c.status === "Resolved").length;
 
-  // Simulated percentage changes
+  // Avg resolution time (mock)
+  const avgResolutionDays = userComplaints.length > 0 ? 4.2 : 0;
+
   const stats = [
     {
       label: "Total Complaints", value: userComplaints.length, icon: FileText,
-      color: "text-primary", bg: "bg-primary/10",
-      change: 12, sparkData: [1, 2, 1, 3, 2, 4, 3], sparkColor: "hsl(220, 70%, 50%)"
+      color: "text-primary", bg: "bg-primary/10", cardClass: "stat-card-primary",
+      change: 12, sparkData: [1, 2, 1, 3, 2, 4, 3], sparkColor: "hsl(220, 70%, 50%)",
+      subtitle: "All time"
     },
     {
       label: "Pending", value: pending, icon: Clock,
-      color: "text-warning", bg: "bg-warning/10",
-      change: -5, sparkData: [3, 2, 4, 3, 2, 1, 2], sparkColor: "hsl(38, 92%, 55%)"
+      color: "text-warning", bg: "bg-warning/10", cardClass: "stat-card-warning",
+      change: -5, sparkData: [3, 2, 4, 3, 2, 1, 2], sparkColor: "hsl(38, 92%, 55%)",
+      subtitle: "Awaiting review"
     },
     {
       label: "In Progress", value: inProgress, icon: AlertTriangle,
-      color: "text-accent", bg: "bg-accent/10",
-      change: 0, sparkData: [1, 1, 2, 1, 2, 2, 1], sparkColor: "hsl(200, 80%, 50%)"
+      color: "text-accent", bg: "bg-accent/10", cardClass: "stat-card-accent",
+      change: 0, sparkData: [1, 1, 2, 1, 2, 2, 1], sparkColor: "hsl(200, 80%, 50%)",
+      subtitle: "Being handled"
     },
     {
       label: "Resolved", value: resolved, icon: CheckCircle,
-      color: "text-success", bg: "bg-success/10",
-      change: 25, sparkData: [0, 1, 1, 2, 2, 3, 4], sparkColor: "hsl(152, 60%, 42%)"
+      color: "text-success", bg: "bg-success/10", cardClass: "stat-card-success",
+      change: 25, sparkData: [0, 1, 1, 2, 2, 3, 4], sparkColor: "hsl(152, 60%, 42%)",
+      subtitle: "Completed"
     },
   ];
 
@@ -60,51 +75,101 @@ const UserDashboard = () => {
   });
   const categoryData = Array.from(categoryMap.entries()).map(([name, count]) => ({ name, count }));
 
+  // Activity timeline data
+  const activityData = userComplaints
+    .map((c) => ({
+      date: new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      count: 1,
+    }))
+    .reduce<{ date: string; count: number }[]>((acc, cur) => {
+      const existing = acc.find((a) => a.date === cur.date);
+      if (existing) existing.count += 1;
+      else acc.push({ ...cur });
+      return acc;
+    }, [])
+    .sort((a, b) => new Date(`${a.date} 2026`).getTime() - new Date(`${b.date} 2026`).getTime());
+
   const ChangeIndicator = ({ change }: { change: number }) => {
     if (change > 0) return <span className="flex items-center gap-0.5 text-xs font-semibold text-success"><TrendingUp className="w-3 h-3" />+{change}%</span>;
     if (change < 0) return <span className="flex items-center gap-0.5 text-xs font-semibold text-destructive"><TrendingDown className="w-3 h-3" />{change}%</span>;
     return <span className="flex items-center gap-0.5 text-xs font-semibold text-muted-foreground"><Minus className="w-3 h-3" />0%</span>;
   };
 
+  const resolutionRate = userComplaints.length > 0 ? Math.round((resolved / userComplaints.length) * 100) : 0;
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="page-header">Welcome back, {user?.name} 👋</h1>
           <p className="text-muted-foreground mt-1">Here's an overview of your complaints</p>
         </div>
         <Link to="/submit">
-          <Button className="gradient-primary text-primary-foreground gap-2">
+          <Button className="gradient-primary text-primary-foreground gap-2 h-11 px-5 shadow-md hover:shadow-lg transition-shadow">
             <Plus className="w-4 h-4" /> New Complaint
           </Button>
         </Link>
       </div>
+
+      {/* Quick stats bar */}
+      <motion.div
+        className="flex flex-wrap gap-3"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+      >
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card border border-border" style={{ boxShadow: "var(--shadow-card)" }}>
+          <div className="w-8 h-8 rounded-lg gradient-success flex items-center justify-center">
+            <Zap className="w-4 h-4" style={{ color: "hsl(0,0%,100%)" }} />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Resolution Rate</p>
+            <p className="text-sm font-bold text-foreground"><AnimatedCounter end={resolutionRate} />%</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card border border-border" style={{ boxShadow: "var(--shadow-card)" }}>
+          <div className="w-8 h-8 rounded-lg gradient-accent flex items-center justify-center">
+            <Timer className="w-4 h-4" style={{ color: "hsl(0,0%,100%)" }} />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Avg. Resolution</p>
+            <p className="text-sm font-bold text-foreground">{avgResolutionDays} days</p>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Stat cards with sparklines */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, i) => (
           <motion.div
             key={stat.label}
-            className="stat-card group"
+            className={`stat-card ${stat.cardClass} group`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{stat.label}</span>
-              <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center transition-transform group-hover:scale-110`}>
-                <stat.icon className={`w-4 h-4 ${stat.color}`} />
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{stat.label}</span>
+                <p className="text-[10px] text-muted-foreground/60 mt-0.5">{stat.subtitle}</p>
+              </div>
+              <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center transition-all group-hover:scale-110 group-hover:shadow-md`}>
+                <stat.icon className={`w-5 h-5 ${stat.color}`} />
               </div>
             </div>
-            <div className="flex items-end justify-between gap-4">
+            <div className="flex items-end justify-between gap-3">
               <div>
-                <p className="text-3xl font-bold text-foreground leading-none">{stat.value}</p>
-                <div className="mt-1.5">
+                <p className="text-3xl font-extrabold text-foreground leading-none tabular-nums">
+                  <AnimatedCounter end={stat.value} />
+                </p>
+                <div className="mt-2 flex items-center gap-1.5">
                   <ChangeIndicator change={stat.change} />
+                  <span className="text-[10px] text-muted-foreground">vs last week</span>
                 </div>
               </div>
-              <div className="w-20 h-10 opacity-70 group-hover:opacity-100 transition-opacity">
-                <Sparkline data={stat.sparkData} color={stat.sparkColor} />
+              <div className="w-24 h-12 opacity-50 group-hover:opacity-100 transition-opacity">
+                <Sparkline data={stat.sparkData} color={stat.sparkColor} height={48} />
               </div>
             </div>
           </motion.div>
@@ -115,65 +180,92 @@ const UserDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Status overview */}
         <motion.div
-          className="lg:col-span-2 bg-card border border-border rounded-xl p-5"
-          style={{ boxShadow: "var(--shadow-card)" }}
+          className="lg:col-span-2 chart-card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">Status Overview</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-1 uppercase tracking-wide">Status Overview</h3>
+          <p className="text-xs text-muted-foreground mb-4">Distribution of your complaint statuses</p>
           {pieData.length > 0 ? (
             <div className="flex items-center gap-4">
-              <ResponsiveContainer width={140} height={140}>
+              <ResponsiveContainer width={150} height={150}>
                 <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="value" stroke="none">
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={42} outerRadius={68} paddingAngle={3} dataKey="value" stroke="none">
                     {pieData.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
                   </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: "hsl(0, 0%, 100%)", border: "1px solid hsl(220, 15%, 90%)", borderRadius: "8px", fontSize: "12px" }} />
+                  <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="space-y-2">
-                {pieData.map((d) => (
-                  <div key={d.name} className="flex items-center gap-2 text-sm">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                    <span className="text-muted-foreground">{d.name}</span>
-                    <span className="font-bold text-foreground ml-auto">{d.value}</span>
-                  </div>
-                ))}
+              <div className="space-y-3 flex-1">
+                {pieData.map((d) => {
+                  const pct = userComplaints.length > 0 ? Math.round((d.value / userComplaints.length) * 100) : 0;
+                  return (
+                    <div key={d.name}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                          <span className="text-foreground font-medium">{d.name}</span>
+                        </div>
+                        <span className="text-xs font-bold text-foreground">{d.value} <span className="text-muted-foreground font-normal">({pct}%)</span></span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-1.5">
+                        <motion.div
+                          className="h-1.5 rounded-full"
+                          style={{ backgroundColor: d.color }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.8, delay: 0.4 }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">No data yet</p>
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <FileText className="w-10 h-10 mb-2 opacity-30" />
+              <p className="text-sm">No data yet</p>
+            </div>
           )}
         </motion.div>
 
         {/* Category breakdown */}
         <motion.div
-          className="lg:col-span-3 bg-card border border-border rounded-xl p-5"
-          style={{ boxShadow: "var(--shadow-card)" }}
+          className="lg:col-span-3 chart-card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-foreground mb-1 uppercase tracking-wide flex items-center gap-2">
             <Tag className="w-4 h-4 text-primary" /> By Category
           </h3>
+          <p className="text-xs text-muted-foreground mb-4">Complaints grouped by type</p>
           {categoryData.length > 0 ? (
             <div className="space-y-3">
-              {categoryData.map((cat) => {
+              {categoryData.map((cat, idx) => {
                 const pct = userComplaints.length > 0 ? (cat.count / userComplaints.length) * 100 : 0;
+                const colors = [
+                  "hsl(220, 70%, 50%)", "hsl(38, 92%, 55%)", "hsl(152, 60%, 42%)",
+                  "hsl(0, 72%, 55%)", "hsl(200, 80%, 50%)", "hsl(280, 60%, 55%)", "hsl(170, 55%, 45%)"
+                ];
                 return (
-                  <div key={cat.name} className="group">
-                    <div className="flex items-center justify-between mb-1">
+                  <div key={cat.name} className="group/bar">
+                    <div className="flex items-center justify-between mb-1.5">
                       <span className="text-sm text-foreground font-medium">{cat.name}</span>
-                      <span className="text-xs text-muted-foreground">{cat.count} ({Math.round(pct)}%)</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-foreground">{cat.count}</span>
+                        <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">{Math.round(pct)}%</span>
+                      </div>
                     </div>
-                    <div className="w-full bg-muted rounded-full h-2">
+                    <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
                       <motion.div
-                        className="h-2 rounded-full gradient-primary"
+                        className="h-2.5 rounded-full transition-all group-hover/bar:h-3"
+                        style={{ backgroundColor: colors[idx % colors.length] }}
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
-                        transition={{ duration: 0.8, delay: 0.2 }}
+                        transition={{ duration: 0.8, delay: 0.2 + idx * 0.1 }}
                       />
                     </div>
                   </div>
@@ -181,10 +273,41 @@ const UserDashboard = () => {
               })}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">No complaints submitted yet</p>
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <Tag className="w-10 h-10 mb-2 opacity-30" />
+              <p className="text-sm">No complaints submitted yet</p>
+            </div>
           )}
         </motion.div>
       </div>
+
+      {/* Activity timeline chart */}
+      {activityData.length > 1 && (
+        <motion.div
+          className="chart-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <h3 className="text-sm font-semibold text-foreground mb-1 uppercase tracking-wide">Your Activity</h3>
+          <p className="text-xs text-muted-foreground mb-4">Complaints submitted over time</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={activityData}>
+              <defs>
+                <linearGradient id="userActivityGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(220, 70%, 50%)" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="hsl(220, 70%, 50%)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 92%)" vertical={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+              <Area type="monotone" dataKey="count" stroke="hsl(220, 70%, 50%)" fill="url(#userActivityGrad)" strokeWidth={2.5} name="Complaints" dot={{ r: 3.5, fill: "hsl(220, 70%, 50%)", strokeWidth: 2, stroke: "hsl(0, 0%, 100%)" }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </motion.div>
+      )}
 
       {/* Recent complaints */}
       <motion.div
@@ -192,34 +315,47 @@ const UserDashboard = () => {
         style={{ boxShadow: "var(--shadow-card)" }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.6 }}
       >
-        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Recent Complaints</h2>
-          <Link to="/track" className="text-sm text-primary font-medium flex items-center gap-1 hover:underline">
-            View all <ArrowRight className="w-4 h-4" />
+          <Link to="/track" className="text-xs text-primary font-semibold flex items-center gap-1 hover:underline transition-colors">
+            View all <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
         {userComplaints.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">
-            <FileText className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p>No complaints yet. Submit your first complaint!</p>
+          <div className="p-10 text-center text-muted-foreground">
+            <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">No complaints yet</p>
+            <p className="text-xs mt-1">Submit your first complaint to get started</p>
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {userComplaints.slice(0, 5).map((c) => (
-              <div key={c.id} className="px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors group">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+            {userComplaints.slice(0, 5).map((c, i) => (
+              <motion.div
+                key={c.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.6 + i * 0.05 }}
+                className="px-5 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-all group cursor-default"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
                     <FileText className="w-4 h-4 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium text-foreground text-sm">{c.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{c.id} · {c.category} · {c.location}</p>
+                    <p className="font-medium text-foreground text-sm group-hover:text-primary transition-colors">{c.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs text-muted-foreground font-mono">{c.id}</span>
+                      <span className="w-1 h-1 rounded-full bg-border" />
+                      <span className="text-xs text-muted-foreground">{c.category}</span>
+                      <span className="w-1 h-1 rounded-full bg-border" />
+                      <span className="text-xs text-muted-foreground">{c.location}</span>
+                    </div>
                   </div>
                 </div>
                 <StatusBadge status={c.status} />
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
@@ -230,13 +366,13 @@ const UserDashboard = () => {
 
 export const StatusBadge = ({ status }: { status: string }) => {
   const styles: Record<string, string> = {
-    Pending: "bg-warning/15 text-warning",
-    "In Progress": "bg-accent/15 text-accent",
-    Resolved: "bg-success/15 text-success",
-    Rejected: "bg-destructive/15 text-destructive",
+    Pending: "bg-warning/15 text-warning border-warning/20",
+    "In Progress": "bg-accent/15 text-accent border-accent/20",
+    Resolved: "bg-success/15 text-success border-success/20",
+    Rejected: "bg-destructive/15 text-destructive border-destructive/20",
   };
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${styles[status] || "bg-muted text-muted-foreground"}`}>
+    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${styles[status] || "bg-muted text-muted-foreground border-border"}`}>
       {status}
     </span>
   );
