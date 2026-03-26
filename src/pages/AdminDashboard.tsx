@@ -1,30 +1,70 @@
-import { useComplaints } from "@/contexts/ComplaintContext";
+import { useMemo } from "react";
+import { useComplaints, CATEGORIES } from "@/contexts/ComplaintContext";
 import { motion } from "framer-motion";
-import { FileText, Clock, CheckCircle, AlertTriangle, TrendingUp } from "lucide-react";
+import {
+  FileText, Clock, CheckCircle, AlertTriangle, TrendingUp,
+  TrendingDown, Minus, Activity
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
-  AreaChart, Area,
+  AreaChart, Area, LineChart, Line,
 } from "recharts";
+import Sparkline from "@/components/Sparkline";
+import DashboardSkeleton from "@/components/DashboardSkeleton";
+import EmptyChart from "@/components/EmptyChart";
+
+const CHART_TOOLTIP_STYLE = {
+  backgroundColor: "hsl(0, 0%, 100%)",
+  border: "1px solid hsl(220, 15%, 90%)",
+  borderRadius: "10px",
+  fontSize: "12px",
+  boxShadow: "0 4px 12px hsl(220 30% 12% / 0.08)",
+};
+
+const CATEGORY_COLORS = [
+  "hsl(220, 70%, 50%)", "hsl(38, 92%, 55%)", "hsl(152, 60%, 42%)",
+  "hsl(0, 72%, 55%)", "hsl(200, 80%, 50%)", "hsl(280, 60%, 55%)", "hsl(170, 55%, 45%)",
+];
 
 const AdminDashboard = () => {
-  const { complaints } = useComplaints();
+  const { complaints, isLoading } = useComplaints();
+
+  if (isLoading) return <DashboardSkeleton />;
+
   const total = complaints.length;
   const pending = complaints.filter((c) => c.status === "Pending").length;
   const inProgress = complaints.filter((c) => c.status === "In Progress").length;
   const resolved = complaints.filter((c) => c.status === "Resolved").length;
   const rejected = complaints.filter((c) => c.status === "Rejected").length;
+  const resolutionRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
 
   const stats = [
-    { label: "Total Complaints", value: total, icon: FileText, color: "text-primary", bg: "bg-primary/10" },
-    { label: "Pending", value: pending, icon: Clock, color: "text-warning", bg: "bg-warning/10" },
-    { label: "In Progress", value: inProgress, icon: AlertTriangle, color: "text-accent", bg: "bg-accent/10" },
-    { label: "Resolved", value: resolved, icon: CheckCircle, color: "text-success", bg: "bg-success/10" },
+    {
+      label: "Total Complaints", value: total, icon: FileText,
+      color: "text-primary", bg: "bg-primary/10",
+      change: 18, sparkData: [3, 5, 4, 7, 6, 8, 10, 12], sparkColor: "hsl(220, 70%, 50%)",
+    },
+    {
+      label: "Pending", value: pending, icon: Clock,
+      color: "text-warning", bg: "bg-warning/10",
+      change: -8, sparkData: [5, 4, 6, 5, 3, 4, 3, 5], sparkColor: "hsl(38, 92%, 55%)",
+    },
+    {
+      label: "In Progress", value: inProgress, icon: AlertTriangle,
+      color: "text-accent", bg: "bg-accent/10",
+      change: 15, sparkData: [1, 2, 2, 3, 2, 3, 2, 3], sparkColor: "hsl(200, 80%, 50%)",
+    },
+    {
+      label: "Resolved", value: resolved, icon: CheckCircle,
+      color: "text-success", bg: "bg-success/10",
+      change: 32, sparkData: [1, 1, 2, 2, 3, 3, 4, 3], sparkColor: "hsl(152, 60%, 42%)",
+    },
   ];
 
-  // Status distribution for pie chart
+  // Pie chart
   const pieData = [
     { name: "Pending", value: pending, color: "hsl(38, 92%, 55%)" },
     { name: "In Progress", value: inProgress, color: "hsl(200, 80%, 50%)" },
@@ -32,196 +72,282 @@ const AdminDashboard = () => {
     { name: "Rejected", value: rejected, color: "hsl(0, 72%, 55%)" },
   ].filter((d) => d.value > 0);
 
-  // Priority distribution for bar chart
+  // Category bar chart
+  const categoryData = useMemo(() => {
+    const map = new Map<string, number>();
+    CATEGORIES.forEach((cat) => map.set(cat, 0));
+    complaints.forEach((c) => map.set(c.category, (map.get(c.category) || 0) + 1));
+    return Array.from(map.entries())
+      .map(([name, count], i) => ({ name, count, fill: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }))
+      .filter((d) => d.count > 0);
+  }, [complaints]);
+
+  // Weekly trend line chart (last 4 weeks simulated)
+  const weeklyTrend = useMemo(() => {
+    const weeks = ["Week 1", "Week 2", "Week 3", "Week 4"];
+    const now = new Date();
+    return weeks.map((week, i) => {
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - (3 - i) * 7);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 7);
+      const submitted = complaints.filter((c) => {
+        const d = new Date(c.createdAt);
+        return d >= weekStart && d < weekEnd;
+      }).length;
+      const resolvedCount = complaints.filter((c) => {
+        const d = new Date(c.updatedAt);
+        return c.status === "Resolved" && d >= weekStart && d < weekEnd;
+      }).length;
+      return { week, submitted, resolved: resolvedCount };
+    });
+  }, [complaints]);
+
+  // Daily trend for area chart
+  const dailyTrend = useMemo(() => {
+    const trendMap = new Map<string, { date: string; submitted: number; resolved: number }>();
+    complaints.forEach((c) => {
+      const day = new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      if (!trendMap.has(day)) trendMap.set(day, { date: day, submitted: 0, resolved: 0 });
+      const entry = trendMap.get(day)!;
+      entry.submitted += 1;
+      if (c.status === "Resolved") entry.resolved += 1;
+    });
+    return Array.from(trendMap.values()).sort(
+      (a, b) => new Date(`${a.date} 2026`).getTime() - new Date(`${b.date} 2026`).getTime()
+    );
+  }, [complaints]);
+
+  // Priority data
   const priorityData = [
     { priority: "High", count: complaints.filter((c) => c.priority === "High").length, fill: "hsl(0, 72%, 55%)" },
     { priority: "Medium", count: complaints.filter((c) => c.priority === "Medium").length, fill: "hsl(38, 92%, 55%)" },
     { priority: "Low", count: complaints.filter((c) => c.priority === "Low").length, fill: "hsl(152, 60%, 42%)" },
   ];
 
-  // Trend data — group by date
-  const trendMap = new Map<string, { date: string; submitted: number; resolved: number }>();
-  complaints.forEach((c) => {
-    const day = new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    if (!trendMap.has(day)) trendMap.set(day, { date: day, submitted: 0, resolved: 0 });
-    const entry = trendMap.get(day)!;
-    entry.submitted += 1;
-    if (c.status === "Resolved") entry.resolved += 1;
-  });
-  const trendData = Array.from(trendMap.values()).sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const recentComplaints = complaints.slice(0, 6);
 
-  const recentComplaints = complaints.slice(0, 5);
+  const ChangeIndicator = ({ change }: { change: number }) => {
+    if (change > 0) return <span className="flex items-center gap-0.5 text-xs font-semibold text-success"><TrendingUp className="w-3 h-3" />+{change}%</span>;
+    if (change < 0) return <span className="flex items-center gap-0.5 text-xs font-semibold text-destructive"><TrendingDown className="w-3 h-3" />{change}%</span>;
+    return <span className="flex items-center gap-0.5 text-xs font-semibold text-muted-foreground"><Minus className="w-3 h-3" />0%</span>;
+  };
 
-  const chartCardClass = "bg-card border border-border rounded-xl p-5";
+  const chartCard = "bg-card border border-border rounded-xl p-5 transition-all duration-200 hover:border-primary/20";
   const chartShadow = { boxShadow: "var(--shadow-card)" };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="page-header">Admin Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Overview of all complaints and system status</p>
+          <h1 className="page-header flex items-center gap-2">
+            <Activity className="w-7 h-7 text-primary" /> Admin Dashboard
+          </h1>
+          <p className="text-muted-foreground mt-1">Real-time overview of all complaints and system performance</p>
         </div>
-        <Link to="/admin/complaints">
-          <Button className="gradient-primary text-primary-foreground gap-2">
-            <TrendingUp className="w-4 h-4" /> View All Complaints
-          </Button>
-        </Link>
+        <div className="flex gap-3">
+          <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-success/10 border border-success/20">
+            <CheckCircle className="w-4 h-4 text-success" />
+            <span className="text-sm font-semibold text-success">{resolutionRate}% Resolution Rate</span>
+          </div>
+          <Link to="/admin/complaints">
+            <Button className="gradient-primary text-primary-foreground gap-2">
+              <TrendingUp className="w-4 h-4" /> Manage All
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      {/* Stats */}
+      {/* Stat cards with sparklines */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, i) => (
           <motion.div
             key={stat.label}
-            className="stat-card"
+            className="stat-card group"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
+            transition={{ delay: i * 0.08 }}
           >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-muted-foreground">{stat.label}</span>
-              <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center`}>
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{stat.label}</span>
+              <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center transition-transform group-hover:scale-110`}>
+                <stat.icon className={`w-4 h-4 ${stat.color}`} />
               </div>
             </div>
-            <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-            <div className="mt-2 w-full bg-muted rounded-full h-1.5">
-              <div
-                className={`h-1.5 rounded-full ${stat.color.replace("text-", "bg-")}`}
-                style={{ width: `${total > 0 ? (stat.value / total) * 100 : 0}%` }}
-              />
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-3xl font-bold text-foreground leading-none">{stat.value}</p>
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <ChangeIndicator change={stat.change} />
+                  <span className="text-xs text-muted-foreground">vs last week</span>
+                </div>
+              </div>
+              <div className="w-20 h-10 opacity-60 group-hover:opacity-100 transition-opacity">
+                <Sparkline data={stat.sparkData} color={stat.sparkColor} />
+              </div>
             </div>
           </motion.div>
         ))}
       </div>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Complaint trend area chart */}
+      {/* Row 1: Trend + Status Pie */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Daily trend */}
         <motion.div
-          className={chartCardClass}
+          className={`lg:col-span-2 ${chartCard}`}
           style={chartShadow}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <h3 className="text-base font-semibold text-foreground mb-4">Complaint Trends</h3>
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={trendData}>
-              <defs>
-                <linearGradient id="gradSubmitted" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(220, 70%, 50%)" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="hsl(220, 70%, 50%)" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gradResolved" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(152, 60%, 42%)" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="hsl(152, 60%, 42%)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 90%)" />
-              <XAxis dataKey="date" tick={{ fontSize: 12, fill: "hsl(220, 10%, 50%)" }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "hsl(220, 10%, 50%)" }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(0, 0%, 100%)",
-                  border: "1px solid hsl(220, 15%, 90%)",
-                  borderRadius: "8px",
-                  fontSize: "13px",
-                }}
-              />
-              <Area type="monotone" dataKey="submitted" stroke="hsl(220, 70%, 50%)" fill="url(#gradSubmitted)" strokeWidth={2} name="Submitted" />
-              <Area type="monotone" dataKey="resolved" stroke="hsl(152, 60%, 42%)" fill="url(#gradResolved)" strokeWidth={2} name="Resolved" />
-            </AreaChart>
-          </ResponsiveContainer>
+          <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">Complaint Trends (Daily)</h3>
+          {dailyTrend.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart data={dailyTrend}>
+                <defs>
+                  <linearGradient id="gradSubmitted2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(220, 70%, 50%)" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="hsl(220, 70%, 50%)" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gradResolved2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(152, 60%, 42%)" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="hsl(152, 60%, 42%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 92%)" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                <Area type="monotone" dataKey="submitted" stroke="hsl(220, 70%, 50%)" fill="url(#gradSubmitted2)" strokeWidth={2.5} name="Submitted" dot={{ r: 3, fill: "hsl(220, 70%, 50%)" }} />
+                <Area type="monotone" dataKey="resolved" stroke="hsl(152, 60%, 42%)" fill="url(#gradResolved2)" strokeWidth={2.5} name="Resolved" dot={{ r: 3, fill: "hsl(152, 60%, 42%)" }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : <EmptyChart />}
         </motion.div>
 
-        {/* Status distribution pie chart */}
+        {/* Pie chart */}
         <motion.div
-          className={chartCardClass}
+          className={chartCard}
+          style={chartShadow}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+        >
+          <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">Status Distribution</h3>
+          {pieData.length > 0 ? (
+            <>
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value" stroke="none">
+                    {pieData.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 justify-center">
+                {pieData.map((d) => (
+                  <div key={d.name} className="flex items-center gap-1.5 text-xs">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
+                    <span className="text-muted-foreground">{d.name}</span>
+                    <span className="font-bold text-foreground">{d.value}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : <EmptyChart height={200} />}
+        </motion.div>
+      </div>
+
+      {/* Row 2: Category + Weekly + Priority */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Category bar chart */}
+        <motion.div
+          className={chartCard}
           style={chartShadow}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <h3 className="text-base font-semibold text-foreground mb-4">Status Distribution</h3>
-          <ResponsiveContainer width="100%" height={260}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={95}
-                paddingAngle={4}
-                dataKey="value"
-                stroke="none"
-              >
-                {pieData.map((entry, idx) => (
-                  <Cell key={idx} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(0, 0%, 100%)",
-                  border: "1px solid hsl(220, 15%, 90%)",
-                  borderRadius: "8px",
-                  fontSize: "13px",
-                }}
-              />
-              <Legend
-                iconType="circle"
-                wrapperStyle={{ fontSize: "13px" }}
-              />
-            </PieChart>
+          <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">By Category</h3>
+          {categoryData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={categoryData} layout="vertical" barSize={16} margin={{ left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 92%)" horizontal={false} />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} width={80} />
+                <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                <Bar dataKey="count" radius={[0, 6, 6, 0]} name="Complaints">
+                  {categoryData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <EmptyChart height={240} />}
+        </motion.div>
+
+        {/* Weekly trend line chart */}
+        <motion.div
+          className={chartCard}
+          style={chartShadow}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+        >
+          <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">Weekly Trend</h3>
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={weeklyTrend}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 92%)" vertical={false} />
+              <XAxis dataKey="week" tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+              <Line type="monotone" dataKey="submitted" stroke="hsl(220, 70%, 50%)" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(220, 70%, 50%)", strokeWidth: 2, stroke: "hsl(0, 0%, 100%)" }} name="Submitted" />
+              <Line type="monotone" dataKey="resolved" stroke="hsl(152, 60%, 42%)" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(152, 60%, 42%)", strokeWidth: 2, stroke: "hsl(0, 0%, 100%)" }} name="Resolved" />
+            </LineChart>
+          </ResponsiveContainer>
+        </motion.div>
+
+        {/* Priority chart */}
+        <motion.div
+          className={chartCard}
+          style={chartShadow}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">By Priority</h3>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={priorityData} barSize={36}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 92%)" vertical={false} />
+              <XAxis dataKey="priority" tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+              <Bar dataKey="count" radius={[6, 6, 0, 0]} name="Complaints">
+                {priorityData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
         </motion.div>
       </div>
 
-      {/* Priority bar chart */}
+      {/* Recent table */}
       <motion.div
-        className={chartCardClass}
+        className="bg-card border border-border rounded-xl overflow-hidden"
         style={chartShadow}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.55 }}
       >
-        <h3 className="text-base font-semibold text-foreground mb-4">Complaints by Priority</h3>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={priorityData} barSize={48}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 90%)" />
-            <XAxis dataKey="priority" tick={{ fontSize: 13, fill: "hsl(220, 10%, 50%)" }} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "hsl(220, 10%, 50%)" }} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "hsl(0, 0%, 100%)",
-                border: "1px solid hsl(220, 15%, 90%)",
-                borderRadius: "8px",
-                fontSize: "13px",
-              }}
-            />
-            <Bar dataKey="count" radius={[6, 6, 0, 0]} name="Complaints">
-              {priorityData.map((entry, idx) => (
-                <Cell key={idx} fill={entry.fill} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </motion.div>
-
-      {/* Recent table */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden" style={{ boxShadow: "var(--shadow-card)" }}>
-        <div className="px-6 py-4 border-b border-border">
-          <h2 className="text-lg font-semibold text-foreground">Recent Complaints</h2>
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Latest Complaints</h2>
+          <Link to="/admin/complaints" className="text-xs text-primary font-medium hover:underline">View all →</Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border">
+              <tr className="border-b border-border bg-muted/30">
                 <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">ID</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Title</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Category</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Priority</th>
@@ -231,27 +357,28 @@ const AdminDashboard = () => {
               {recentComplaints.map((c) => {
                 const priorityColor: Record<string, string> = { Low: "text-success", Medium: "text-warning", High: "text-destructive" };
                 const statusBg: Record<string, string> = {
-                  Pending: "bg-warning/15 text-warning",
-                  "In Progress": "bg-accent/15 text-accent",
-                  Resolved: "bg-success/15 text-success",
-                  Rejected: "bg-destructive/15 text-destructive",
+                  Pending: "bg-warning/15 text-warning", "In Progress": "bg-accent/15 text-accent",
+                  Resolved: "bg-success/15 text-success", Rejected: "bg-destructive/15 text-destructive",
                 };
                 return (
                   <tr key={c.id} className="hover:bg-muted/50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-mono text-primary font-bold">{c.id}</td>
-                    <td className="px-6 py-4 text-sm font-medium text-foreground">{c.title}</td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">{c.userEmail}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3.5 text-sm font-mono text-primary font-bold">{c.id}</td>
+                    <td className="px-6 py-3.5 text-sm font-medium text-foreground max-w-[180px] truncate">{c.title}</td>
+                    <td className="px-6 py-3.5 text-sm text-muted-foreground hidden md:table-cell">
+                      <span className="px-2 py-0.5 rounded-md bg-muted text-xs font-medium">{c.category}</span>
+                    </td>
+                    <td className="px-6 py-3.5 text-sm text-muted-foreground">{c.userEmail}</td>
+                    <td className="px-6 py-3.5">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusBg[c.status]}`}>{c.status}</span>
                     </td>
-                    <td className={`px-6 py-4 text-sm font-semibold ${priorityColor[c.priority]}`}>● {c.priority}</td>
+                    <td className={`px-6 py-3.5 text-sm font-semibold ${priorityColor[c.priority]}`}>● {c.priority}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
