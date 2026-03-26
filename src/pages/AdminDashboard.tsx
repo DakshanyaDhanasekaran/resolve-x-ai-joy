@@ -9,7 +9,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell,
   AreaChart, Area, LineChart, Line,
 } from "recharts";
 import Sparkline from "@/components/Sparkline";
@@ -32,7 +32,6 @@ const CATEGORY_COLORS = [
 const AdminDashboard = () => {
   const { complaints, isLoading } = useComplaints();
 
-  // Category bar chart
   const categoryData = useMemo(() => {
     const map = new Map<string, number>();
     CATEGORIES.forEach((cat) => map.set(cat, 0));
@@ -42,7 +41,6 @@ const AdminDashboard = () => {
       .filter((d) => d.count > 0);
   }, [complaints]);
 
-  // Weekly trend line chart (last 4 weeks simulated)
   const weeklyTrend = useMemo(() => {
     const weeks = ["Week 1", "Week 2", "Week 3", "Week 4"];
     const now = new Date();
@@ -63,7 +61,6 @@ const AdminDashboard = () => {
     });
   }, [complaints]);
 
-  // Daily trend for area chart
   const dailyTrend = useMemo(() => {
     const trendMap = new Map<string, { date: string; submitted: number; resolved: number }>();
     complaints.forEach((c) => {
@@ -80,6 +77,7 @@ const AdminDashboard = () => {
 
   if (isLoading) return <DashboardSkeleton />;
 
+  const total = complaints.length;
   const pending = complaints.filter((c) => c.status === "Pending").length;
   const inProgress = complaints.filter((c) => c.status === "In Progress").length;
   const resolved = complaints.filter((c) => c.status === "Resolved").length;
@@ -87,29 +85,12 @@ const AdminDashboard = () => {
   const resolutionRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
 
   const stats = [
-    {
-      label: "Total Complaints", value: total, icon: FileText,
-      color: "text-primary", bg: "bg-primary/10",
-      change: 18, sparkData: [3, 5, 4, 7, 6, 8, 10, 12], sparkColor: "hsl(220, 70%, 50%)",
-    },
-    {
-      label: "Pending", value: pending, icon: Clock,
-      color: "text-warning", bg: "bg-warning/10",
-      change: -8, sparkData: [5, 4, 6, 5, 3, 4, 3, 5], sparkColor: "hsl(38, 92%, 55%)",
-    },
-    {
-      label: "In Progress", value: inProgress, icon: AlertTriangle,
-      color: "text-accent", bg: "bg-accent/10",
-      change: 15, sparkData: [1, 2, 2, 3, 2, 3, 2, 3], sparkColor: "hsl(200, 80%, 50%)",
-    },
-    {
-      label: "Resolved", value: resolved, icon: CheckCircle,
-      color: "text-success", bg: "bg-success/10",
-      change: 32, sparkData: [1, 1, 2, 2, 3, 3, 4, 3], sparkColor: "hsl(152, 60%, 42%)",
-    },
+    { label: "Total Complaints", value: total, icon: FileText, color: "text-primary", bg: "bg-primary/10", change: 18, sparkData: [3, 5, 4, 7, 6, 8, 10, 12], sparkColor: "hsl(220, 70%, 50%)" },
+    { label: "Pending", value: pending, icon: Clock, color: "text-warning", bg: "bg-warning/10", change: -8, sparkData: [5, 4, 6, 5, 3, 4, 3, 5], sparkColor: "hsl(38, 92%, 55%)" },
+    { label: "In Progress", value: inProgress, icon: AlertTriangle, color: "text-accent", bg: "bg-accent/10", change: 15, sparkData: [1, 2, 2, 3, 2, 3, 2, 3], sparkColor: "hsl(200, 80%, 50%)" },
+    { label: "Resolved", value: resolved, icon: CheckCircle, color: "text-success", bg: "bg-success/10", change: 32, sparkData: [1, 1, 2, 2, 3, 3, 4, 3], sparkColor: "hsl(152, 60%, 42%)" },
   ];
 
-  // Pie chart
   const pieData = [
     { name: "Pending", value: pending, color: "hsl(38, 92%, 55%)" },
     { name: "In Progress", value: inProgress, color: "hsl(200, 80%, 50%)" },
@@ -117,53 +98,6 @@ const AdminDashboard = () => {
     { name: "Rejected", value: rejected, color: "hsl(0, 72%, 55%)" },
   ].filter((d) => d.value > 0);
 
-  // Category bar chart
-  const categoryData = useMemo(() => {
-    const map = new Map<string, number>();
-    CATEGORIES.forEach((cat) => map.set(cat, 0));
-    complaints.forEach((c) => map.set(c.category, (map.get(c.category) || 0) + 1));
-    return Array.from(map.entries())
-      .map(([name, count], i) => ({ name, count, fill: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }))
-      .filter((d) => d.count > 0);
-  }, [complaints]);
-
-  // Weekly trend line chart (last 4 weeks simulated)
-  const weeklyTrend = useMemo(() => {
-    const weeks = ["Week 1", "Week 2", "Week 3", "Week 4"];
-    const now = new Date();
-    return weeks.map((week, i) => {
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - (3 - i) * 7);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 7);
-      const submitted = complaints.filter((c) => {
-        const d = new Date(c.createdAt);
-        return d >= weekStart && d < weekEnd;
-      }).length;
-      const resolvedCount = complaints.filter((c) => {
-        const d = new Date(c.updatedAt);
-        return c.status === "Resolved" && d >= weekStart && d < weekEnd;
-      }).length;
-      return { week, submitted, resolved: resolvedCount };
-    });
-  }, [complaints]);
-
-  // Daily trend for area chart
-  const dailyTrend = useMemo(() => {
-    const trendMap = new Map<string, { date: string; submitted: number; resolved: number }>();
-    complaints.forEach((c) => {
-      const day = new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      if (!trendMap.has(day)) trendMap.set(day, { date: day, submitted: 0, resolved: 0 });
-      const entry = trendMap.get(day)!;
-      entry.submitted += 1;
-      if (c.status === "Resolved") entry.resolved += 1;
-    });
-    return Array.from(trendMap.values()).sort(
-      (a, b) => new Date(`${a.date} 2026`).getTime() - new Date(`${b.date} 2026`).getTime()
-    );
-  }, [complaints]);
-
-  // Priority data
   const priorityData = [
     { priority: "High", count: complaints.filter((c) => c.priority === "High").length, fill: "hsl(0, 72%, 55%)" },
     { priority: "Medium", count: complaints.filter((c) => c.priority === "Medium").length, fill: "hsl(38, 92%, 55%)" },
@@ -183,7 +117,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="page-header flex items-center gap-2">
@@ -204,16 +137,10 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Stat cards with sparklines */}
+      {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            className="stat-card group"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08 }}
-          >
+          <motion.div key={stat.label} className="stat-card group" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{stat.label}</span>
               <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center transition-transform group-hover:scale-110`}>
@@ -236,49 +163,29 @@ const AdminDashboard = () => {
         ))}
       </div>
 
-      {/* Row 1: Trend + Status Pie */}
+      {/* Charts row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Daily trend */}
-        <motion.div
-          className={`lg:col-span-2 ${chartCard}`}
-          style={chartShadow}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
+        <motion.div className={`lg:col-span-2 ${chartCard}`} style={chartShadow} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">Complaint Trends (Daily)</h3>
           {dailyTrend.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={dailyTrend}>
                 <defs>
-                  <linearGradient id="gradSubmitted2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(220, 70%, 50%)" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="hsl(220, 70%, 50%)" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gradResolved2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(152, 60%, 42%)" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="hsl(152, 60%, 42%)" stopOpacity={0} />
-                  </linearGradient>
+                  <linearGradient id="gradS" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="hsl(220, 70%, 50%)" stopOpacity={0.25} /><stop offset="100%" stopColor="hsl(220, 70%, 50%)" stopOpacity={0} /></linearGradient>
+                  <linearGradient id="gradR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="hsl(152, 60%, 42%)" stopOpacity={0.25} /><stop offset="100%" stopColor="hsl(152, 60%, 42%)" stopOpacity={0} /></linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 92%)" vertical={false} />
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-                <Area type="monotone" dataKey="submitted" stroke="hsl(220, 70%, 50%)" fill="url(#gradSubmitted2)" strokeWidth={2.5} name="Submitted" dot={{ r: 3, fill: "hsl(220, 70%, 50%)" }} />
-                <Area type="monotone" dataKey="resolved" stroke="hsl(152, 60%, 42%)" fill="url(#gradResolved2)" strokeWidth={2.5} name="Resolved" dot={{ r: 3, fill: "hsl(152, 60%, 42%)" }} />
+                <Area type="monotone" dataKey="submitted" stroke="hsl(220, 70%, 50%)" fill="url(#gradS)" strokeWidth={2.5} name="Submitted" dot={{ r: 3, fill: "hsl(220, 70%, 50%)" }} />
+                <Area type="monotone" dataKey="resolved" stroke="hsl(152, 60%, 42%)" fill="url(#gradR)" strokeWidth={2.5} name="Resolved" dot={{ r: 3, fill: "hsl(152, 60%, 42%)" }} />
               </AreaChart>
             </ResponsiveContainer>
           ) : <EmptyChart />}
         </motion.div>
 
-        {/* Pie chart */}
-        <motion.div
-          className={chartCard}
-          style={chartShadow}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-        >
+        <motion.div className={chartCard} style={chartShadow} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
           <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">Status Distribution</h3>
           {pieData.length > 0 ? (
             <>
@@ -304,16 +211,9 @@ const AdminDashboard = () => {
         </motion.div>
       </div>
 
-      {/* Row 2: Category + Weekly + Priority */}
+      {/* Charts row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Category bar chart */}
-        <motion.div
-          className={chartCard}
-          style={chartShadow}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
+        <motion.div className={chartCard} style={chartShadow} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">By Category</h3>
           {categoryData.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
@@ -330,14 +230,7 @@ const AdminDashboard = () => {
           ) : <EmptyChart height={240} />}
         </motion.div>
 
-        {/* Weekly trend line chart */}
-        <motion.div
-          className={chartCard}
-          style={chartShadow}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-        >
+        <motion.div className={chartCard} style={chartShadow} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}>
           <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">Weekly Trend</h3>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={weeklyTrend}>
@@ -351,14 +244,7 @@ const AdminDashboard = () => {
           </ResponsiveContainer>
         </motion.div>
 
-        {/* Priority chart */}
-        <motion.div
-          className={chartCard}
-          style={chartShadow}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
+        <motion.div className={chartCard} style={chartShadow} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
           <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">By Priority</h3>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={priorityData} barSize={36}>
@@ -375,13 +261,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Recent table */}
-      <motion.div
-        className="bg-card border border-border rounded-xl overflow-hidden"
-        style={chartShadow}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.55 }}
-      >
+      <motion.div className="bg-card border border-border rounded-xl overflow-hidden" style={chartShadow} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}>
         <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Latest Complaints</h2>
           <Link to="/admin/complaints" className="text-xs text-primary font-medium hover:underline">View all →</Link>
@@ -400,23 +280,16 @@ const AdminDashboard = () => {
             </thead>
             <tbody className="divide-y divide-border">
               {recentComplaints.map((c) => {
-                const priorityColor: Record<string, string> = { Low: "text-success", Medium: "text-warning", High: "text-destructive" };
-                const statusBg: Record<string, string> = {
-                  Pending: "bg-warning/15 text-warning", "In Progress": "bg-accent/15 text-accent",
-                  Resolved: "bg-success/15 text-success", Rejected: "bg-destructive/15 text-destructive",
-                };
+                const pc: Record<string, string> = { Low: "text-success", Medium: "text-warning", High: "text-destructive" };
+                const sb: Record<string, string> = { Pending: "bg-warning/15 text-warning", "In Progress": "bg-accent/15 text-accent", Resolved: "bg-success/15 text-success", Rejected: "bg-destructive/15 text-destructive" };
                 return (
                   <tr key={c.id} className="hover:bg-muted/50 transition-colors">
                     <td className="px-6 py-3.5 text-sm font-mono text-primary font-bold">{c.id}</td>
                     <td className="px-6 py-3.5 text-sm font-medium text-foreground max-w-[180px] truncate">{c.title}</td>
-                    <td className="px-6 py-3.5 text-sm text-muted-foreground hidden md:table-cell">
-                      <span className="px-2 py-0.5 rounded-md bg-muted text-xs font-medium">{c.category}</span>
-                    </td>
+                    <td className="px-6 py-3.5 text-sm text-muted-foreground hidden md:table-cell"><span className="px-2 py-0.5 rounded-md bg-muted text-xs font-medium">{c.category}</span></td>
                     <td className="px-6 py-3.5 text-sm text-muted-foreground">{c.userEmail}</td>
-                    <td className="px-6 py-3.5">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusBg[c.status]}`}>{c.status}</span>
-                    </td>
-                    <td className={`px-6 py-3.5 text-sm font-semibold ${priorityColor[c.priority]}`}>● {c.priority}</td>
+                    <td className="px-6 py-3.5"><span className={`px-3 py-1 rounded-full text-xs font-semibold ${sb[c.status]}`}>{c.status}</span></td>
+                    <td className={`px-6 py-3.5 text-sm font-semibold ${pc[c.priority]}`}>● {c.priority}</td>
                   </tr>
                 );
               })}
