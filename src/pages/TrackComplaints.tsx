@@ -3,14 +3,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useComplaints } from "@/contexts/ComplaintContext";
 import { StatusBadge } from "@/pages/UserDashboard";
 import { motion } from "framer-motion";
-import { Search, Clock, MapPin, Calendar } from "lucide-react";
+import { Search, Clock, MapPin, Calendar, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import DashboardSkeleton from "@/components/DashboardSkeleton";
 
 const TrackComplaints = () => {
   const { user } = useAuth();
-  const { complaints } = useComplaints();
+  const { complaints, isLoading } = useComplaints();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+
+  if (isLoading) return <DashboardSkeleton />;
 
   const userComplaints = complaints.filter((c) => c.userEmail === user?.email);
   const filtered = userComplaints.filter((c) => {
@@ -34,7 +37,6 @@ const TrackComplaints = () => {
         <p className="text-muted-foreground mt-1">Monitor the status of your submitted complaints</p>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -45,8 +47,8 @@ const TrackComplaints = () => {
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                statusFilter === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
+              className={`px-3 py-2 text-sm font-medium rounded-lg transition-all duration-150 ${
+                statusFilter === s ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
               }`}
             >
               {s}
@@ -55,11 +57,13 @@ const TrackComplaints = () => {
         </div>
       </div>
 
-      {/* Complaint cards */}
+      <p className="text-xs text-muted-foreground">{filtered.length} complaint{filtered.length !== 1 ? "s" : ""} found</p>
+
       {filtered.length === 0 ? (
-        <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground" style={{ boxShadow: "var(--shadow-card)" }}>
-          <Search className="w-10 h-10 mx-auto mb-3 opacity-40" />
-          <p>No complaints found</p>
+        <div className="bg-card border border-border rounded-xl p-12 text-center text-muted-foreground" style={{ boxShadow: "var(--shadow-card)" }}>
+          <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="font-medium">No complaints found</p>
+          <p className="text-xs mt-1">Try adjusting your search or filters</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -68,8 +72,8 @@ const TrackComplaints = () => {
               key={c.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="bg-card border border-border rounded-xl p-5 hover:border-primary/30 transition-all"
+              transition={{ delay: i * 0.04 }}
+              className="bg-card border border-border rounded-xl p-5 hover:border-primary/30 hover:shadow-md transition-all group"
               style={{ boxShadow: "var(--shadow-card)" }}
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
@@ -77,8 +81,11 @@ const TrackComplaints = () => {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-mono text-primary font-bold">{c.id}</span>
                     <span className={`text-xs font-semibold ${priorityColor[c.priority]}`}>● {c.priority}</span>
+                    <span className="px-2 py-0.5 rounded-md bg-muted text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <Tag className="w-2.5 h-2.5" />{c.category}
+                    </span>
                   </div>
-                  <h3 className="font-semibold text-foreground text-base">{c.title}</h3>
+                  <h3 className="font-semibold text-foreground text-base group-hover:text-primary transition-colors">{c.title}</h3>
                   <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{c.description}</p>
                   <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{c.location}</span>

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useComplaints } from "@/contexts/ComplaintContext";
+import { useComplaints, CATEGORIES, ComplaintCategory } from "@/contexts/ComplaintContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, MapPin, AlignLeft, CheckCircle, Send } from "lucide-react";
+import { FileText, MapPin, AlignLeft, CheckCircle, Send, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const SubmitComplaint = () => {
   const { user } = useAuth();
@@ -13,6 +14,7 @@ const SubmitComplaint = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
+  const [category, setCategory] = useState<ComplaintCategory>("Others");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -20,12 +22,13 @@ const SubmitComplaint = () => {
     e.preventDefault();
     setLoading(true);
     await new Promise((r) => setTimeout(r, 1000));
-    const id = addComplaint({ title, description, location, userEmail: user?.email || "" });
+    const id = addComplaint({ title, description, location, category, userEmail: user?.email || "" });
     setLoading(false);
     setSuccess(id);
     setTitle("");
     setDescription("");
     setLocation("");
+    setCategory("Others");
   };
 
   return (
@@ -62,6 +65,21 @@ const SubmitComplaint = () => {
               <FileText className="w-4 h-4 text-primary" /> Title
             </label>
             <Input placeholder="Brief title of your complaint" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+              <Tag className="w-4 h-4 text-primary" /> Category
+            </label>
+            <Select value={category} onValueChange={(val) => setCategory(val as ComplaintCategory)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
