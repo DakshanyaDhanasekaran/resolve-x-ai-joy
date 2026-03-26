@@ -32,7 +32,15 @@ const CATEGORY_COLORS = [
 const AdminDashboard = () => {
   const { complaints, isLoading } = useComplaints();
 
-  if (isLoading) return <DashboardSkeleton />;
+  // Category bar chart
+  const categoryData = useMemo(() => {
+    const map = new Map<string, number>();
+    CATEGORIES.forEach((cat) => map.set(cat, 0));
+    complaints.forEach((c) => map.set(c.category, (map.get(c.category) || 0) + 1));
+    return Array.from(map.entries())
+      .map(([name, count], i) => ({ name, count, fill: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }))
+      .filter((d) => d.count > 0);
+  }, [complaints]);
 
   const total = complaints.length;
   const pending = complaints.filter((c) => c.status === "Pending").length;
