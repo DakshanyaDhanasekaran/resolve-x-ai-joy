@@ -15,6 +15,8 @@ export interface Complaint {
   userEmail: string;
   createdAt: string;
   updatedAt: string;
+  image?: string;
+  statusHistory?: { status: string; timestamp: string }[];
 }
 
 interface ComplaintContextType {

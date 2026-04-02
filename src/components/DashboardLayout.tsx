@@ -1,11 +1,11 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useComplaints } from "@/contexts/ComplaintContext";
+import { useNotifications } from "@/contexts/NotificationContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, FileText, Search, LogOut, Shield, Menu, X,
-  User, ChevronDown, Settings, Users, Bell, Sparkles, BarChart3,
+  User, ChevronDown, Settings, Bell, Sparkles, BarChart3, Check, Trash2,
 } from "lucide-react";
 
 interface NavItem {
@@ -34,20 +34,24 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const { complaints } = useComplaints();
-  const pendingCount = complaints.filter((c) => c.status === "Pending").length;
-  const highPriorityCount = complaints.filter((c) => c.priority === "High" && c.status !== "Resolved").length;
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
   const nav = user?.role === "admin" ? adminNav : userNav;
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
+    navigate("/");
+  };
+
+  const notifTypeColor: Record<string, string> = {
+    success: "bg-success",
+    info: "bg-primary",
+    warning: "bg-warning",
+    error: "bg-destructive",
   };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
       <div className="px-5 py-5 flex items-center gap-3 border-b" style={{ borderColor: "hsl(220, 30%, 20%)" }}>
         <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-md">
           <Shield className="w-5 h-5" style={{ color: "hsl(0, 0%, 100%)" }} />
@@ -61,12 +65,10 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
         </div>
       </div>
 
-      {/* Nav label */}
       <div className="px-5 pt-5 pb-2">
         <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "hsl(220, 15%, 40%)" }}>Navigation</span>
       </div>
 
-      {/* Nav items */}
       <nav className="flex-1 px-3 pb-4 space-y-1">
         {nav.map((item) => {
           const active = location.pathname === item.path;
@@ -87,7 +89,6 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
         })}
       </nav>
 
-      {/* User info + Logout */}
       <div className="px-3 py-3 border-t" style={{ borderColor: "hsl(220, 30%, 20%)" }}>
         <div className="flex items-center gap-3 px-4 py-2.5 mb-2 rounded-lg" style={{ background: "hsl(220, 30%, 16%)" }}>
           <div className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center shadow-sm">
@@ -159,9 +160,9 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 className="relative p-2.5 rounded-xl hover:bg-muted transition-colors"
               >
                 <Bell className="w-5 h-5 text-muted-foreground" />
-                {pendingCount > 0 && (
+                {unreadCount > 0 && (
                   <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center badge-glow">
-                    {pendingCount > 9 ? "9+" : pendingCount}
+                    {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
               </button>
@@ -175,43 +176,54 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                   >
                     <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                       <p className="text-sm font-semibold text-foreground">Notifications</p>
-                      <span className="text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                        {pendingCount + (highPriorityCount > 0 ? 1 : 0)} new
-                      </span>
-                    </div>
-                    <div className="p-2 space-y-1 max-h-64 overflow-y-auto">
-                      {pendingCount > 0 && (
-                        <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-warning/8 hover:bg-warning/12 transition-colors cursor-default">
-                          <div className="w-2 h-2 rounded-full bg-warning mt-1.5 shrink-0" />
-                          <div>
-                            <p className="text-xs font-medium text-foreground">{pendingCount} pending complaint{pendingCount !== 1 ? "s" : ""}</p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">Awaiting review and action</p>
-                          </div>
-                        </div>
-                      )}
-                      {highPriorityCount > 0 && (
-                        <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-destructive/8 hover:bg-destructive/12 transition-colors cursor-default">
-                          <div className="w-2 h-2 rounded-full bg-destructive mt-1.5 shrink-0" />
-                          <div>
-                            <p className="text-xs font-medium text-foreground">{highPriorityCount} high priority unresolved</p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">Requires immediate attention</p>
-                          </div>
-                        </div>
-                      )}
-                      <div className="flex items-start gap-2.5 p-2.5 rounded-lg hover:bg-muted/50 transition-colors cursor-default">
-                        <div className="w-2 h-2 rounded-full bg-success mt-1.5 shrink-0" />
-                        <div>
-                          <p className="text-xs font-medium text-foreground">System running smoothly</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">All services operational</p>
-                        </div>
+                      <div className="flex items-center gap-1.5">
+                        {unreadCount > 0 && (
+                          <button onClick={markAllAsRead} className="text-[10px] text-primary hover:underline flex items-center gap-1">
+                            <Check className="w-3 h-3" /> Mark all read
+                          </button>
+                        )}
+                        {notifications.length > 0 && (
+                          <button onClick={clearAll} className="text-[10px] text-muted-foreground hover:text-destructive flex items-center gap-1 ml-2">
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-6 text-center text-muted-foreground">
+                          <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                          <p className="text-xs">No notifications yet</p>
+                        </div>
+                      ) : (
+                        <div className="p-1.5 space-y-0.5">
+                          {notifications.slice(0, 15).map((n) => (
+                            <div
+                              key={n.id}
+                              onClick={() => markAsRead(n.id)}
+                              className={`flex items-start gap-2.5 p-2.5 rounded-lg cursor-pointer transition-colors ${
+                                n.read ? "hover:bg-muted/50" : "bg-primary/5 hover:bg-primary/10"
+                              }`}
+                            >
+                              <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${notifTypeColor[n.type]}`} />
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-medium text-foreground ${!n.read ? "font-semibold" : ""}`}>{n.title}</p>
+                                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                                <p className="text-[10px] text-muted-foreground/60 mt-1">
+                                  {new Date(n.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                </p>
+                              </div>
+                              {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
 
-            {/* Divider */}
             <div className="w-px h-8 bg-border mx-1 hidden sm:block" />
 
             {/* Profile dropdown */}

@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { useComplaints, Complaint, CATEGORIES } from "@/contexts/ComplaintContext";
-import { motion } from "framer-motion";
-import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Tag } from "lucide-react";
+import { useNotifications } from "@/contexts/NotificationContext";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Tag, ImageIcon, X, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
@@ -14,11 +15,13 @@ const STATUS_ORDER: Record<string, number> = { Pending: 1, "In Progress": 2, Res
 
 const AdminComplaints = () => {
   const { complaints, updateStatus, isLoading } = useComplaints();
+  const { addNotification } = useNotifications();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [sortKey, setSortKey] = useState<SortKey>("createdAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [imageModal, setImageModal] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     let result = complaints.filter((c) => {
@@ -56,6 +59,16 @@ const AdminComplaints = () => {
   const SortIcon = ({ column }: { column: SortKey }) => {
     if (sortKey !== column) return <ArrowUpDown className="w-3 h-3 opacity-40" />;
     return sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary" /> : <ArrowDown className="w-3 h-3 text-primary" />;
+  };
+
+  const handleStatusChange = (id: string, newStatus: Complaint["status"], title: string) => {
+    updateStatus(id, newStatus);
+    addNotification({
+      title: "Status Updated",
+      message: `Complaint "${title}" (${id}) status changed to ${newStatus}.`,
+      type: newStatus === "Resolved" ? "success" : newStatus === "Rejected" ? "error" : "info",
+      complaintId: id,
+    });
   };
 
   const statuses: Complaint["status"][] = ["Pending", "In Progress", "Resolved", "Rejected"];
@@ -108,7 +121,6 @@ const AdminComplaints = () => {
         </div>
       </div>
 
-      {/* Result count */}
       <p className="text-xs text-muted-foreground">{filtered.length} complaint{filtered.length !== 1 ? "s" : ""} found</p>
 
       {/* Table */}
@@ -120,6 +132,7 @@ const AdminComplaints = () => {
                 <th onClick={() => toggleSort("id")} className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors">
                   <span className="flex items-center gap-1">ID <SortIcon column="id" /></span>
                 </th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">IMG</th>
                 <th onClick={() => toggleSort("title")} className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors">
                   <span className="flex items-center gap-1">Title <SortIcon column="title" /></span>
                 </th>
@@ -148,6 +161,23 @@ const AdminComplaints = () => {
                   className="hover:bg-muted/50 transition-colors"
                 >
                   <td className="px-6 py-3.5 text-sm font-mono text-primary font-bold whitespace-nowrap">{c.id}</td>
+                  <td className="px-6 py-3.5">
+                    {c.image ? (
+                      <button
+                        onClick={() => setImageModal(c.image!)}
+                        className="w-10 h-10 rounded-lg overflow-hidden border border-border hover:border-primary/40 hover:shadow-md transition-all group relative"
+                      >
+                        <img src={c.image} alt="" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/20 transition-colors flex items-center justify-center">
+                          <Eye className="w-3 h-3 text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </button>
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                        <ImageIcon className="w-4 h-4 text-muted-foreground/40" />
+                      </div>
+                    )}
+                  </td>
                   <td className="px-6 py-3.5 text-sm font-medium text-foreground max-w-[180px] truncate">{c.title}</td>
                   <td className="px-6 py-3.5 text-sm text-muted-foreground hidden lg:table-cell">
                     <span className="px-2 py-0.5 rounded-md bg-muted text-xs font-medium">{c.category}</span>
@@ -162,7 +192,7 @@ const AdminComplaints = () => {
                     {new Date(c.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-3.5">
-                    <Select value={c.status} onValueChange={(val) => updateStatus(c.id, val as Complaint["status"])}>
+                    <Select value={c.status} onValueChange={(val) => handleStatusChange(c.id, val as Complaint["status"], c.title)}>
                       <SelectTrigger className="w-[130px] h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
@@ -186,6 +216,35 @@ const AdminComplaints = () => {
           </div>
         )}
       </div>
+
+      {/* Image Modal */}
+      <AnimatePresence>
+        {imageModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-foreground/60 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => setImageModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-3xl max-h-[85vh] rounded-2xl overflow-hidden bg-card border border-border shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setImageModal(null)}
+                className="absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-card/90 backdrop-blur flex items-center justify-center hover:bg-destructive/20 transition-colors"
+              >
+                <X className="w-5 h-5 text-foreground" />
+              </button>
+              <img src={imageModal} alt="Complaint" className="max-w-full max-h-[85vh] object-contain" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

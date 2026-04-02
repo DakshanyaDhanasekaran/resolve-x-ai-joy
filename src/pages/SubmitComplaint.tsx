@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useComplaints, CATEGORIES, ComplaintCategory } from "@/contexts/ComplaintContext";
+import { useNotifications } from "@/contexts/NotificationContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, MapPin, AlignLeft, CheckCircle, Send, Tag } from "lucide-react";
+import { FileText, MapPin, AlignLeft, CheckCircle, Send, Tag, Camera, X, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,24 +12,50 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const SubmitComplaint = () => {
   const { user } = useAuth();
   const { addComplaint } = useComplaints();
+  const { addNotification } = useNotifications();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [category, setCategory] = useState<ComplaintCategory>("Others");
+  const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image must be less than 5MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => setImage(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     await new Promise((r) => setTimeout(r, 1000));
-    const id = addComplaint({ title, description, location, category, userEmail: user?.email || "" });
+    const id = addComplaint({
+      title, description, location, category,
+      userEmail: user?.email || "",
+      ...(image ? { image } : {}),
+    });
     setLoading(false);
     setSuccess(id);
     setTitle("");
     setDescription("");
     setLocation("");
     setCategory("Others");
+    setImage(null);
+    addNotification({
+      title: "Complaint Submitted",
+      message: `Your complaint "${title}" (${id}) has been submitted successfully.`,
+      type: "success",
+      complaintId: id,
+    });
   };
 
   return (
@@ -71,9 +98,7 @@ const SubmitComplaint = () => {
               <Tag className="w-4 h-4 text-primary" /> Category
             </label>
             <Select value={category} onValueChange={(val) => setCategory(val as ComplaintCategory)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
               <SelectContent>
                 {CATEGORIES.map((cat) => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
@@ -93,6 +118,45 @@ const SubmitComplaint = () => {
             </label>
             <Input placeholder="Where is the issue located?" value={location} onChange={(e) => setLocation(e.target.value)} required />
           </div>
+
+          {/* Image Upload */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+              <Camera className="w-4 h-4 text-primary" /> Attach Image (optional)
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+            {image ? (
+              <div className="relative rounded-xl overflow-hidden border border-border bg-muted">
+                <img src={image} alt="Preview" className="w-full max-h-56 object-cover" />
+                <button
+                  type="button"
+                  onClick={() => { setImage(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-card/90 backdrop-blur flex items-center justify-center hover:bg-destructive/20 transition-colors"
+                >
+                  <X className="w-4 h-4 text-foreground" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-2 hover:border-primary/40 hover:bg-primary/5 transition-all group cursor-pointer"
+              >
+                <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                  <ImageIcon className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Click to upload image</p>
+                <p className="text-xs text-muted-foreground">JPG, PNG up to 5MB</p>
+              </button>
+            )}
+          </div>
+
           <Button type="submit" className="w-full gradient-primary text-primary-foreground h-11 gap-2" disabled={loading}>
             {loading ? (
               <span className="flex items-center gap-2">
