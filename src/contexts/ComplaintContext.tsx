@@ -164,8 +164,12 @@ export const ComplaintProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateStatus = (id: string, status: Complaint["status"]) => {
+    const now = new Date().toISOString();
     const updated = complaints.map((c) =>
-      c.id === id ? { ...c, status, updatedAt: new Date().toISOString() } : c
+      c.id === id ? {
+        ...c, status, updatedAt: now,
+        statusHistory: [...(c.statusHistory || []), { status, timestamp: now }],
+      } : c
     );
     save(updated);
   };
