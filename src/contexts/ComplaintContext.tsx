@@ -21,7 +21,7 @@ export interface Complaint {
 
 interface ComplaintContextType {
   complaints: Complaint[];
-  addComplaint: (c: Omit<Complaint, "id" | "status" | "priority" | "createdAt" | "updatedAt">) => string;
+  addComplaint: (c: Omit<Complaint, "id" | "status" | "priority" | "createdAt" | "updatedAt" | "statusHistory">) => string;
   updateStatus: (id: string, status: Complaint["status"]) => void;
   isLoading: boolean;
 }
