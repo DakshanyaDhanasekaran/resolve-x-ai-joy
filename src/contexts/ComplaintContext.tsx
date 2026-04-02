@@ -147,7 +147,7 @@ export const ComplaintProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   };
 
-  const addComplaint = (c: Omit<Complaint, "id" | "status" | "priority" | "createdAt" | "updatedAt">) => {
+  const addComplaint = (c: Omit<Complaint, "id" | "status" | "priority" | "createdAt" | "updatedAt" | "statusHistory">) => {
     const id = `RX-${1000 + complaints.length + 1}`;
     const now = new Date().toISOString();
     const newComplaint: Complaint = {
@@ -157,6 +157,7 @@ export const ComplaintProvider = ({ children }: { children: ReactNode }) => {
       priority: "Medium",
       createdAt: now,
       updatedAt: now,
+      statusHistory: [{ status: "Pending", timestamp: now }],
     };
     save([newComplaint, ...complaints]);
     return id;
