@@ -5,8 +5,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ComplaintProvider } from "@/contexts/ComplaintContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import DashboardLayout from "@/components/DashboardLayout";
+import LandingPage from "@/pages/LandingPage";
 import Login from "@/pages/Login";
+import AdminLogin from "@/pages/AdminLogin";
 import Register from "@/pages/Register";
 import UserDashboard from "@/pages/UserDashboard";
 import SubmitComplaint from "@/pages/SubmitComplaint";
@@ -20,7 +23,7 @@ const queryClient = new QueryClient();
 const ProtectedRoute = ({ children, role }: { children: React.ReactNode; role?: "admin" | "user" }) => {
   const { user, isLoading } = useAuth();
   if (isLoading) return <div className="min-h-screen flex items-center justify-center"><span className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/" replace />;
   if (role && user.role !== role) return <Navigate to={user.role === "admin" ? "/admin" : "/dashboard"} replace />;
   return <>{children}</>;
 };
@@ -30,8 +33,9 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/" element={user ? <Navigate to={user.role === "admin" ? "/admin" : "/dashboard"} replace /> : <Navigate to="/login" replace />} />
+      <Route path="/" element={user ? <Navigate to={user.role === "admin" ? "/admin" : "/dashboard"} replace /> : <LandingPage />} />
       <Route path="/login" element={user ? <Navigate to={user.role === "admin" ? "/admin" : "/dashboard"} replace /> : <Login />} />
+      <Route path="/admin-login" element={user ? <Navigate to={user.role === "admin" ? "/admin" : "/dashboard"} replace /> : <AdminLogin />} />
       <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Register />} />
 
       {/* User routes */}
@@ -55,9 +59,11 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <ComplaintProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
+          <NotificationProvider>
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </NotificationProvider>
         </ComplaintProvider>
       </AuthProvider>
     </TooltipProvider>
