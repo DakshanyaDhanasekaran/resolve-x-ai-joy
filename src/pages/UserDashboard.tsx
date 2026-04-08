@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import Sparkline from "@/components/Sparkline";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 import AnimatedCounter from "@/components/AnimatedCounter";
+import EmergencyContacts from "@/components/EmergencyContacts";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 
 const CHART_TOOLTIP_STYLE = {
@@ -332,34 +333,38 @@ const UserDashboard = () => {
         ) : (
           <div className="divide-y divide-border">
             {userComplaints.slice(0, 5).map((c, i) => (
-              <motion.div
-                key={c.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 + i * 0.05 }}
-                className="px-5 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-all group cursor-default"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
-                    <FileText className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground text-sm group-hover:text-primary transition-colors">{c.title}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-muted-foreground font-mono">{c.id}</span>
-                      <span className="w-1 h-1 rounded-full bg-border" />
-                      <span className="text-xs text-muted-foreground">{c.category}</span>
-                      <span className="w-1 h-1 rounded-full bg-border" />
-                      <span className="text-xs text-muted-foreground">{c.location}</span>
+              <Link key={c.id} to={`/complaint/${c.id}`}>
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 + i * 0.05 }}
+                  className="px-5 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
+                      <FileText className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground text-sm group-hover:text-primary transition-colors">{c.title}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-muted-foreground font-mono">{c.id}</span>
+                        <span className="w-1 h-1 rounded-full bg-border" />
+                        <span className="text-xs text-muted-foreground">{c.category}</span>
+                        <span className="w-1 h-1 rounded-full bg-border" />
+                        <span className="text-xs text-muted-foreground">{c.location}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <StatusBadge status={c.status} />
-              </motion.div>
+                  <StatusBadge status={c.status} />
+                </motion.div>
+              </Link>
             ))}
           </div>
         )}
       </motion.div>
+
+      {/* Emergency Contacts */}
+      <EmergencyContacts />
     </div>
   );
 };

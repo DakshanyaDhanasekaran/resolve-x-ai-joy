@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useComplaints, Complaint } from "@/contexts/ComplaintContext";
+import { Link } from "react-router-dom";
 import { StatusBadge } from "@/pages/UserDashboard";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Clock, MapPin, Calendar, Tag, ImageIcon, X, CheckCircle, AlertTriangle, FileText } from "lucide-react";
+import { Search, Clock, MapPin, Calendar, Tag, ImageIcon, X, CheckCircle, AlertTriangle, FileText, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 
@@ -146,6 +147,9 @@ const TrackComplaints = () => {
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <StatusBadge status={c.status} />
+                  <Link to={`/complaint/${c.id}`} className="text-xs text-primary font-medium flex items-center gap-1 hover:underline" onClick={(e) => e.stopPropagation()}>
+                    View details <ExternalLink className="w-3 h-3" />
+                  </Link>
                   {c.updatedAt !== c.createdAt && (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="w-3 h-3" />

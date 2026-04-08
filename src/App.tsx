@@ -16,7 +16,9 @@ import SubmitComplaint from "@/pages/SubmitComplaint";
 import TrackComplaints from "@/pages/TrackComplaints";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminComplaints from "@/pages/AdminComplaints";
+import ComplaintDetail from "@/pages/ComplaintDetail";
 import NotFound from "@/pages/NotFound";
+import Chatbot from "@/components/Chatbot";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +44,7 @@ const AppRoutes = () => {
       <Route path="/dashboard" element={<ProtectedRoute role="user"><DashboardLayout><UserDashboard /></DashboardLayout></ProtectedRoute>} />
       <Route path="/submit" element={<ProtectedRoute role="user"><DashboardLayout><SubmitComplaint /></DashboardLayout></ProtectedRoute>} />
       <Route path="/track" element={<ProtectedRoute role="user"><DashboardLayout><TrackComplaints /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/complaint/:id" element={<ProtectedRoute><DashboardLayout><ComplaintDetail /></DashboardLayout></ProtectedRoute>} />
 
       {/* Admin routes */}
       <Route path="/admin" element={<ProtectedRoute role="admin"><DashboardLayout><AdminDashboard /></DashboardLayout></ProtectedRoute>} />
@@ -62,6 +65,7 @@ const App = () => (
           <NotificationProvider>
             <BrowserRouter>
               <AppRoutes />
+              <Chatbot />
             </BrowserRouter>
           </NotificationProvider>
         </ComplaintProvider>
