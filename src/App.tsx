@@ -16,7 +16,9 @@ import SubmitComplaint from "@/pages/SubmitComplaint";
 import TrackComplaints from "@/pages/TrackComplaints";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminComplaints from "@/pages/AdminComplaints";
+import ComplaintDetail from "@/pages/ComplaintDetail";
 import NotFound from "@/pages/NotFound";
+import Chatbot from "@/components/Chatbot";
 
 const queryClient = new QueryClient();
 
