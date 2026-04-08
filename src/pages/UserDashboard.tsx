@@ -358,7 +358,7 @@ const UserDashboard = () => {
                 </div>
                 <StatusBadge status={c.status} />
               </motion.div>
-            ))}
+              </Link>
           </div>
         )}
       </motion.div>
