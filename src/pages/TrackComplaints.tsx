@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useComplaints, Complaint } from "@/contexts/ComplaintContext";
+import { Link } from "react-router-dom";
 import { StatusBadge } from "@/pages/UserDashboard";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Clock, MapPin, Calendar, Tag, ImageIcon, X, CheckCircle, AlertTriangle, FileText } from "lucide-react";
