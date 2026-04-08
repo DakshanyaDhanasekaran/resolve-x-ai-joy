@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import Sparkline from "@/components/Sparkline";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 import AnimatedCounter from "@/components/AnimatedCounter";
+import EmergencyContacts from "@/components/EmergencyContacts";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 
 const CHART_TOOLTIP_STYLE = {
