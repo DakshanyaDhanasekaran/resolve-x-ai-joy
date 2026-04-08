@@ -362,6 +362,9 @@ const UserDashboard = () => {
           </div>
         )}
       </motion.div>
+
+      {/* Emergency Contacts */}
+      <EmergencyContacts />
     </div>
   );
 };
