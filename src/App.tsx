@@ -65,6 +65,7 @@ const App = () => (
           <NotificationProvider>
             <BrowserRouter>
               <AppRoutes />
+              <Chatbot />
             </BrowserRouter>
           </NotificationProvider>
         </ComplaintProvider>
