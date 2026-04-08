@@ -333,12 +333,13 @@ const UserDashboard = () => {
         ) : (
           <div className="divide-y divide-border">
             {userComplaints.slice(0, 5).map((c, i) => (
+              <Link key={c.id} to={`/complaint/${c.id}`}>
               <motion.div
-                key={c.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.6 + i * 0.05 }}
-                className="px-5 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-all group cursor-default"
+                className="px-5 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-all group cursor-pointer"
+              >
               >
                 <div className="flex items-center gap-3.5">
                   <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
