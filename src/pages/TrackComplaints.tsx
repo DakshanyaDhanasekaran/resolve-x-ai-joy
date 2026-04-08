@@ -147,6 +147,9 @@ const TrackComplaints = () => {
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <StatusBadge status={c.status} />
+                  <Link to={`/complaint/${c.id}`} className="text-xs text-primary font-medium flex items-center gap-1 hover:underline" onClick={(e) => e.stopPropagation()}>
+                    View details <ExternalLink className="w-3 h-3" />
+                  </Link>
                   {c.updatedAt !== c.createdAt && (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="w-3 h-3" />
