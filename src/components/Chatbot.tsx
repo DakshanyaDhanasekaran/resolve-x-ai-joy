@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Bot, User, ChevronRight } from "lucide-react";
+import { MessageCircle, X, Send, Bot, User, ChevronRight, FileText, Search } from "lucide-react";
 
 interface Message {
   id: string;
@@ -20,7 +21,7 @@ const FAQ_BUTTONS = [
 
 const BOT_RESPONSES: Record<string, string> = {
   "how to submit a complaint?":
-    "To submit a complaint:\n\n1️⃣ Go to **Submit Complaint** from the sidebar\n2️⃣ Fill in the title, description, and location\n3️⃣ Select a category and priority level\n4️⃣ Optionally upload an image\n5️⃣ Click **Submit**\n\nYou'll receive a confirmation notification! 🎉",
+    "To submit a complaint:\n\n1️⃣ Go to **Submit Complaint** from the sidebar\n2️⃣ Fill in the title, description, and location\n3️⃣ Add your phone number for contact\n4️⃣ Select a category\n5️⃣ Optionally upload an image\n6️⃣ Click **Submit**\n\nYou'll receive a confirmation notification! 🎉",
   "how to track my complaint?":
     "To track your complaints:\n\n1️⃣ Navigate to **Track Complaints** in the sidebar\n2️⃣ You'll see all your submitted complaints\n3️⃣ Use the search bar or filters to find specific ones\n4️⃣ Click on a complaint to see its timeline\n\nYou can monitor status changes in real-time! 📊",
   "what is complaint status?":
@@ -28,33 +29,49 @@ const BOT_RESPONSES: Record<string, string> = {
   "how long does resolution take?":
     "Resolution times vary by priority:\n\n⚡ **High Priority** – 1-2 business days\n⏳ **Medium Priority** – 3-5 business days\n📅 **Low Priority** – 5-7 business days\n\nComplex issues may take longer. Check your complaint timeline for updates!",
   "what are the complaint categories?":
-    "Available categories include:\n\n🔧 **Maintenance** – Facility repairs\n⚡ **Electrical** – Power/wiring issues\n💧 **Plumbing** – Water-related problems\n🧹 **Sanitation** – Cleanliness concerns\n🔒 **Security** – Safety issues\n📋 **Others** – General complaints\n\nSelect the most relevant category when submitting!",
+    "Available categories include:\n\n🔧 **Maintenance** – Facility repairs\n⚡ **Electrical** – Power/wiring issues\n💧 **Plumbing** – Water-related problems\n🧹 **Sanitation** – Cleanliness concerns\n🛣️ **Roads** – Road damage/potholes\n🔊 **Noise** – Noise disturbance\n📋 **Others** – General complaints\n\nSelect the most relevant category when submitting!",
   "how to contact support?":
     "You can reach support through:\n\n📧 **Email**: support@resolvex.com\n📞 **Phone**: 1-800-RESOLVE\n💬 **Chat**: You're already here! 😄\n\nFor emergencies, check the **Emergency Contacts** section on your dashboard.",
 };
 
 function getResponse(input: string): string {
   const lower = input.toLowerCase().trim();
+
+  // Direct FAQ match
   for (const [key, value] of Object.entries(BOT_RESPONSES)) {
     if (lower.includes(key.replace("?", "").slice(0, 15))) return value;
   }
-  const keywords: Record<string, string> = {
-    submit: BOT_RESPONSES["how to submit a complaint?"],
-    track: BOT_RESPONSES["how to track my complaint?"],
-    status: BOT_RESPONSES["what is complaint status?"],
-    time: BOT_RESPONSES["how long does resolution take?"],
-    long: BOT_RESPONSES["how long does resolution take?"],
-    categor: BOT_RESPONSES["what are the complaint categories?"],
-    contact: BOT_RESPONSES["how to contact support?"],
-    support: BOT_RESPONSES["how to contact support?"],
-    help: "I can help you with:\n\n• Submitting complaints\n• Tracking complaint status\n• Understanding resolution times\n• Complaint categories\n• Contacting support\n\nTry asking one of the quick questions below! 👇",
-    hello: "Hello! 👋 I'm the Resolve X assistant. How can I help you today? Try one of the quick questions below!",
-    hi: "Hi there! 👋 I'm here to help with your complaints. What would you like to know?",
-  };
-  for (const [key, value] of Object.entries(keywords)) {
-    if (lower.includes(key)) return value;
+
+  // Keyword matching - comprehensive
+  const keywordMap: [string[], string][] = [
+    [["submit", "file", "register", "new complaint", "lodge", "raise", "create"], BOT_RESPONSES["how to submit a complaint?"]],
+    [["track", "follow", "monitor", "check", "where", "find"], BOT_RESPONSES["how to track my complaint?"]],
+    [["status", "progress", "update", "stage", "pending", "resolved", "rejected"], BOT_RESPONSES["what is complaint status?"]],
+    [["time", "long", "duration", "when", "resolve", "days", "fast"], BOT_RESPONSES["how long does resolution take?"]],
+    [["category", "type", "kind", "categories"], BOT_RESPONSES["what are the complaint categories?"]],
+    [["contact", "support", "help", "phone", "email", "call", "reach"], BOT_RESPONSES["how to contact support?"]],
+    [["hello", "hi", "hey", "good morning", "good evening", "namaste", "vanakkam"],
+      "Hello! 👋 I'm the Resolve X assistant. I can help you with submitting and tracking complaints. What would you like to know?"],
+    [["thank", "thanks", "thx"],
+      "You're welcome! 😊 If you need any more help, feel free to ask. I'm here to assist you with submitting and tracking complaints!"],
+    [["complaint", "problem", "issue", "grievance"],
+      "I can help you with your complaint! Here's what I can do:\n\n📝 **Submit** a new complaint\n🔍 **Track** existing complaints\n📊 Check complaint **status**\n\nWhat would you like to do? Use the quick buttons below! 👇"],
+    [["image", "photo", "upload", "picture", "attach"],
+      "You can attach an image when submitting a complaint:\n\n1️⃣ Go to **Submit Complaint**\n2️⃣ Scroll to the image upload section\n3️⃣ Click to upload or drag & drop\n4️⃣ Preview your image before submitting\n\nImages help us understand the issue better! 📸"],
+    [["emergency", "urgent", "danger", "police", "fire", "ambulance"],
+      "For emergencies, check the **Emergency Contacts** on your dashboard:\n\n🚔 **Police**: 100\n🚑 **Ambulance**: 108\n🚒 **Fire Service**: 101\n👩 **Women Helpline**: 181\n\nPlease call immediately for urgent situations!"],
+    [["notification", "alert", "notify", "bell"],
+      "You'll receive notifications when:\n\n✅ Your complaint is submitted successfully\n🔄 Admin updates your complaint status\n\nCheck the bell icon 🔔 in the top navbar for all notifications!"],
+    [["language", "tamil", "hindi", "english", "translate"],
+      "You can change the language using the language selector in the top navigation bar. We support:\n\n🇬🇧 English\n🇮🇳 தமிழ் (Tamil)\n🇮🇳 हिन्दी (Hindi)\n\nThe entire UI will update dynamically!"],
+  ];
+
+  for (const [keywords, response] of keywordMap) {
+    if (keywords.some(k => lower.includes(k))) return response;
   }
-  return "I'm not sure about that. Try asking about:\n\n• How to submit a complaint\n• How to track complaints\n• Complaint statuses\n• Resolution times\n\nOr click one of the quick buttons below! 💡";
+
+  // Fallback - never say "I don't know"
+  return "I can help you with submitting and tracking complaints! Here are some things I can assist with:\n\n📝 How to submit a complaint\n🔍 How to track complaints\n📊 Understanding complaint statuses\n⏱️ Resolution timeframes\n🚨 Emergency contacts\n\nTry clicking one of the quick action buttons below! 👇";
 }
 
 const Chatbot = () => {
@@ -62,7 +79,7 @@ const Chatbot = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
-      text: "Hi! 👋 I'm the Resolve X assistant. How can I help you today?",
+      text: "Hi! 👋 Welcome to Resolve X! I'm your virtual assistant. I can help you with submitting complaints, tracking status, and more. How can I help you today?",
       sender: "bot",
       timestamp: new Date().toISOString(),
     },
@@ -71,6 +88,8 @@ const Chatbot = () => {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  let navigate: ReturnType<typeof useNavigate> | null = null;
+  try { navigate = useNavigate(); } catch { /* not in router */ }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -102,7 +121,7 @@ const Chatbot = () => {
       };
       setMessages((prev) => [...prev, botMsg]);
       setIsTyping(false);
-    }, 800 + Math.random() * 700);
+    }, 600 + Math.random() * 600);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -140,8 +159,8 @@ const Chatbot = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-24 right-6 z-50 w-[360px] max-w-[calc(100vw-3rem)] bg-card border border-border rounded-2xl overflow-hidden flex flex-col"
-            style={{ boxShadow: "var(--shadow-elevated)", height: "min(520px, calc(100vh - 10rem))" }}
+            className="fixed bottom-24 right-6 z-50 w-[380px] max-w-[calc(100vw-3rem)] bg-card border border-border rounded-2xl overflow-hidden flex flex-col"
+            style={{ boxShadow: "var(--shadow-elevated)", height: "min(560px, calc(100vh - 10rem))" }}
           >
             {/* Header */}
             <div className="gradient-primary px-4 py-3 flex items-center gap-3">
@@ -152,11 +171,27 @@ const Chatbot = () => {
                 <p className="text-sm font-semibold text-primary-foreground">Resolve X Assistant</p>
                 <p className="text-[11px] text-primary-foreground/70 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                  Online
+                  Online — Ready to help
                 </p>
               </div>
               <button onClick={() => setIsOpen(false)} className="p-1.5 rounded-lg hover:bg-primary-foreground/10 transition-colors">
                 <X className="w-4 h-4 text-primary-foreground" />
+              </button>
+            </div>
+
+            {/* Quick action buttons */}
+            <div className="px-3 py-2.5 border-b border-border flex gap-2">
+              <button
+                onClick={() => navigate?.("/submit")}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
+              >
+                <FileText className="w-3.5 h-3.5" /> Submit Complaint
+              </button>
+              <button
+                onClick={() => navigate?.("/track")}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
+              >
+                <Search className="w-3.5 h-3.5" /> Track Complaint
               </button>
             </div>
 
@@ -215,7 +250,7 @@ const Chatbot = () => {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick buttons */}
+            {/* FAQ quick buttons */}
             <div className="px-3 pb-2 flex gap-1.5 flex-wrap max-h-20 overflow-y-auto">
               {FAQ_BUTTONS.map((q) => (
                 <button

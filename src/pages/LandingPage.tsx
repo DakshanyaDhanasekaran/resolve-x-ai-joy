@@ -1,13 +1,24 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Shield, User, ShieldCheck, ArrowRight, BarChart3, Zap, Clock } from "lucide-react";
+import { Shield, User, ShieldCheck, ArrowRight, BarChart3, Zap, Clock, Rocket, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage, LANGUAGE_OPTIONS } from "@/contexts/LanguageContext";
 
 const LandingPage = () => {
+  const { t, language, setLanguage } = useLanguage();
+
   const features = [
     { icon: Zap, title: "AI-Powered", desc: "Intelligent complaint routing and priority assignment" },
     { icon: BarChart3, title: "Real-time Analytics", desc: "Track trends and performance with live dashboards" },
     { icon: Clock, title: "Fast Resolution", desc: "Streamlined workflows for quicker complaint handling" },
+  ];
+
+  const futureFeatures = [
+    { key: "future.aadhaar", icon: "🆔" },
+    { key: "future.email_notif", icon: "📧" },
+    { key: "future.ai_chatbot", icon: "🤖" },
+    { key: "future.real_backend", icon: "🗄️" },
+    { key: "future.mobile_app", icon: "📱" },
   ];
 
   return (
@@ -21,11 +32,25 @@ const LandingPage = () => {
           <span className="text-xl font-bold text-foreground tracking-tight">Resolve X</span>
         </div>
         <div className="flex items-center gap-3">
+          {/* Language selector */}
+          <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
+            {LANGUAGE_OPTIONS.map((lang) => (
+              <button
+                key={lang.value}
+                onClick={() => setLanguage(lang.value)}
+                className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  language === lang.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {lang.flag} {lang.label}
+              </button>
+            ))}
+          </div>
           <Link to="/login">
-            <Button variant="ghost" size="sm" className="text-muted-foreground">Sign In</Button>
+            <Button variant="ghost" size="sm" className="text-muted-foreground">{t("landing.signin")}</Button>
           </Link>
           <Link to="/register">
-            <Button size="sm" className="gradient-primary text-primary-foreground">Get Started</Button>
+            <Button size="sm" className="gradient-primary text-primary-foreground">{t("landing.getstarted")}</Button>
           </Link>
         </div>
       </header>
@@ -37,10 +62,10 @@ const LandingPage = () => {
             <Zap className="w-3.5 h-3.5" /> AI-Driven Complaint Management
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground tracking-tight leading-tight max-w-3xl mx-auto">
-            Resolve complaints <span className="bg-clip-text text-transparent" style={{ backgroundImage: "var(--gradient-primary)" }}>faster & smarter</span>
+            {t("landing.title")} <span className="bg-clip-text text-transparent" style={{ backgroundImage: "var(--gradient-primary)" }}>{t("landing.highlight")}</span>
           </h1>
           <p className="text-lg text-muted-foreground mt-6 max-w-xl mx-auto">
-            Submit, track, and manage complaints with an intelligent platform designed for seamless resolution.
+            {t("landing.subtitle")}
           </p>
         </motion.div>
 
@@ -56,10 +81,10 @@ const LandingPage = () => {
               <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform">
                 <User className="w-7 h-7 text-primary" />
               </div>
-              <h3 className="text-lg font-bold text-foreground mb-1">Login as User</h3>
-              <p className="text-sm text-muted-foreground mb-4">Submit and track your complaints</p>
+              <h3 className="text-lg font-bold text-foreground mb-1">{t("landing.user_login")}</h3>
+              <p className="text-sm text-muted-foreground mb-4">{t("landing.user_desc")}</p>
               <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:gap-2.5 transition-all">
-                Continue <ArrowRight className="w-4 h-4" />
+                {t("common.continue")} <ArrowRight className="w-4 h-4" />
               </span>
             </div>
           </Link>
@@ -68,10 +93,10 @@ const LandingPage = () => {
               <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform shadow-md">
                 <ShieldCheck className="w-7 h-7" style={{ color: "hsl(0, 0%, 100%)" }} />
               </div>
-              <h3 className="text-lg font-bold text-foreground mb-1">Login as Admin</h3>
-              <p className="text-sm text-muted-foreground mb-4">Manage and resolve all complaints</p>
+              <h3 className="text-lg font-bold text-foreground mb-1">{t("landing.admin_login")}</h3>
+              <p className="text-sm text-muted-foreground mb-4">{t("landing.admin_desc")}</p>
               <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:gap-2.5 transition-all">
-                Continue <ArrowRight className="w-4 h-4" />
+                {t("common.continue")} <ArrowRight className="w-4 h-4" />
               </span>
             </div>
           </Link>
@@ -79,7 +104,7 @@ const LandingPage = () => {
       </section>
 
       {/* Features */}
-      <section className="max-w-7xl mx-auto px-6 pb-20">
+      <section className="max-w-7xl mx-auto px-6 pb-16">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {features.map((f, i) => (
             <motion.div
@@ -98,6 +123,30 @@ const LandingPage = () => {
             </motion.div>
           ))}
         </div>
+      </section>
+
+      {/* Future roadmap */}
+      <section className="max-w-7xl mx-auto px-6 pb-20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="bg-card border border-border rounded-2xl p-8"
+          style={{ boxShadow: "var(--shadow-card)" }}
+        >
+          <div className="flex items-center gap-2 mb-6">
+            <Rocket className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-bold text-foreground">{t("future.title")}</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {futureFeatures.map((f) => (
+              <div key={f.key} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border">
+                <span className="text-2xl">{f.icon}</span>
+                <span className="text-sm font-medium text-foreground">{t(f.key)}</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
       </section>
 
       {/* Footer */}

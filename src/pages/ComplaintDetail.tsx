@@ -5,7 +5,7 @@ import { StatusBadge } from "@/pages/UserDashboard";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Clock, MapPin, Calendar, Tag, ImageIcon,
-  CheckCircle, AlertTriangle, FileText, User,
+  CheckCircle, AlertTriangle, FileText, User, Phone, Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -105,6 +105,27 @@ const ComplaintDetail = () => {
             </div>
           </div>
 
+          {/* Contact info */}
+          {(complaint.phone || complaint.contactEmail) && (
+            <div className="bg-muted/50 rounded-xl p-4 border border-border">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Contact Information</h3>
+              <div className="flex flex-wrap gap-4">
+                {complaint.phone && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="w-4 h-4 text-primary" />
+                    <a href={`tel:${complaint.phone}`} className="font-medium text-primary hover:underline">{complaint.phone}</a>
+                  </div>
+                )}
+                {complaint.contactEmail && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="w-4 h-4 text-primary" />
+                    <a href={`mailto:${complaint.contactEmail}`} className="font-medium text-primary hover:underline">{complaint.contactEmail}</a>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {complaint.image && (
             <div>
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
@@ -124,6 +145,7 @@ const ComplaintDetail = () => {
                 const Icon = STEP_ICONS[step];
                 const done = !isRejected && i <= currentIdx;
                 const active = !isRejected && i === currentIdx;
+                const historyEntry = complaint.statusHistory?.find((h) => h.status === step);
                 return (
                   <motion.div
                     key={step}
@@ -144,16 +166,37 @@ const ComplaintDetail = () => {
                       <div className="ml-2">
                         <p className={`text-sm font-semibold ${done ? "text-foreground" : "text-muted-foreground"}`}>{step}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {done && step === "Pending" && `Submitted on ${new Date(complaint.createdAt).toLocaleDateString()}`}
-                          {done && step === "In Progress" && complaint.status !== "Pending" && `Processing started`}
-                          {done && step === "Resolved" && complaint.status === "Resolved" && `Resolved on ${new Date(complaint.updatedAt).toLocaleDateString()}`}
-                          {!done && "Awaiting"}
+                          {historyEntry
+                            ? new Date(historyEntry.timestamp).toLocaleString()
+                            : done && step === "Pending"
+                            ? `Submitted on ${new Date(complaint.createdAt).toLocaleDateString()}`
+                            : !done
+                            ? "Awaiting"
+                            : ""}
                         </p>
                       </div>
                     </div>
                   </motion.div>
                 );
               })}
+              {isRejected && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.65 }}
+                  className="relative"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="absolute left-[-24px] w-8 h-8 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center ring-2 ring-offset-2 ring-destructive">
+                      <AlertTriangle className="w-4 h-4" />
+                    </div>
+                    <div className="ml-2">
+                      <p className="text-sm font-semibold text-destructive">Rejected</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{new Date(complaint.updatedAt).toLocaleString()}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </div>
           </div>
         </div>

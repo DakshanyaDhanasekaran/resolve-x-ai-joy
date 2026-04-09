@@ -2,8 +2,9 @@ import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useComplaints, CATEGORIES, ComplaintCategory } from "@/contexts/ComplaintContext";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, MapPin, AlignLeft, CheckCircle, Send, Tag, Camera, X, ImageIcon } from "lucide-react";
+import { FileText, MapPin, AlignLeft, CheckCircle, Send, Tag, Camera, X, ImageIcon, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,13 +14,17 @@ const SubmitComplaint = () => {
   const { user } = useAuth();
   const { addComplaint } = useComplaints();
   const { addNotification } = useNotifications();
+  const { t } = useLanguage();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [category, setCategory] = useState<ComplaintCategory>("Others");
+  const [phone, setPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,13 +39,30 @@ const SubmitComplaint = () => {
     reader.readAsDataURL(file);
   };
 
+  const validatePhone = (value: string) => {
+    const cleaned = value.replace(/\D/g, "");
+    if (cleaned.length < 10) {
+      setPhoneError("Phone number must be at least 10 digits");
+      return false;
+    }
+    if (cleaned.length > 15) {
+      setPhoneError("Phone number is too long");
+      return false;
+    }
+    setPhoneError("");
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validatePhone(phone)) return;
     setLoading(true);
     await new Promise((r) => setTimeout(r, 1000));
     const id = addComplaint({
       title, description, location, category,
       userEmail: user?.email || "",
+      phone,
+      ...(contactEmail ? { contactEmail } : {}),
       ...(image ? { image } : {}),
     });
     setLoading(false);
@@ -49,6 +71,8 @@ const SubmitComplaint = () => {
     setDescription("");
     setLocation("");
     setCategory("Others");
+    setPhone("");
+    setContactEmail("");
     setImage(null);
     addNotification({
       title: "Complaint Submitted",
@@ -61,8 +85,8 @@ const SubmitComplaint = () => {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="page-header">Submit a Complaint</h1>
-        <p className="text-muted-foreground mt-1">Describe your issue and we'll handle the rest</p>
+        <h1 className="page-header">{t("submit.title")}</h1>
+        <p className="text-muted-foreground mt-1">{t("submit.subtitle")}</p>
       </div>
 
       <AnimatePresence>
@@ -75,7 +99,7 @@ const SubmitComplaint = () => {
           >
             <CheckCircle className="w-6 h-6 text-success mt-0.5 shrink-0" />
             <div>
-              <p className="font-semibold text-foreground">Complaint submitted successfully!</p>
+              <p className="font-semibold text-foreground">{t("submit.success")}</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Your complaint ID is <span className="font-mono font-bold text-primary">{success}</span>. You can track it from the Track Complaints page.
               </p>
@@ -89,13 +113,13 @@ const SubmitComplaint = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-primary" /> Title
+              <FileText className="w-4 h-4 text-primary" /> {t("submit.field_title")}
             </label>
             <Input placeholder="Brief title of your complaint" value={title} onChange={(e) => setTitle(e.target.value)} required />
           </div>
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-              <Tag className="w-4 h-4 text-primary" /> Category
+              <Tag className="w-4 h-4 text-primary" /> {t("submit.field_category")}
             </label>
             <Select value={category} onValueChange={(val) => setCategory(val as ComplaintCategory)}>
               <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
@@ -108,29 +132,47 @@ const SubmitComplaint = () => {
           </div>
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-              <AlignLeft className="w-4 h-4 text-primary" /> Description
+              <AlignLeft className="w-4 h-4 text-primary" /> {t("submit.field_desc")}
             </label>
             <Textarea placeholder="Describe the issue in detail..." rows={5} value={description} onChange={(e) => setDescription(e.target.value)} required />
           </div>
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-primary" /> Location
+              <MapPin className="w-4 h-4 text-primary" /> {t("submit.field_location")}
             </label>
             <Input placeholder="Where is the issue located?" value={location} onChange={(e) => setLocation(e.target.value)} required />
+          </div>
+
+          {/* Phone Number */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+              <Phone className="w-4 h-4 text-primary" /> {t("submit.field_phone")} <span className="text-destructive">*</span>
+            </label>
+            <Input
+              placeholder="e.g. 9876543210"
+              type="tel"
+              value={phone}
+              onChange={(e) => { setPhone(e.target.value); if (phoneError) validatePhone(e.target.value); }}
+              required
+              className={phoneError ? "border-destructive focus-visible:ring-destructive" : ""}
+            />
+            {phoneError && <p className="text-xs text-destructive mt-1">{phoneError}</p>}
+          </div>
+
+          {/* Email (optional) */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+              <Mail className="w-4 h-4 text-primary" /> {t("submit.field_email")}
+            </label>
+            <Input placeholder="your.email@example.com" type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
           </div>
 
           {/* Image Upload */}
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-              <Camera className="w-4 h-4 text-primary" /> Attach Image (optional)
+              <Camera className="w-4 h-4 text-primary" /> {t("submit.field_image")}
             </label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageUpload}
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
             {image ? (
               <div className="relative rounded-xl overflow-hidden border border-border bg-muted">
                 <img src={image} alt="Preview" className="w-full max-h-56 object-cover" />
@@ -161,10 +203,10 @@ const SubmitComplaint = () => {
             {loading ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                Submitting...
+                {t("submit.submitting")}
               </span>
             ) : (
-              <><Send className="w-4 h-4" /> Submit Complaint</>
+              <><Send className="w-4 h-4" /> {t("submit.button")}</>
             )}
           </Button>
         </form>
