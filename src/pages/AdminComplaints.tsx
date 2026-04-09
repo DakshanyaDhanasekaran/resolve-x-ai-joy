@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { useComplaints, Complaint, CATEGORIES } from "@/contexts/ComplaintContext";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Tag, ImageIcon, X, Eye } from "lucide-react";
+import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Tag, ImageIcon, X, Eye, Phone, Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
@@ -16,6 +17,7 @@ const STATUS_ORDER: Record<string, number> = { Pending: 1, "In Progress": 2, Res
 const AdminComplaints = () => {
   const { complaints, updateStatus, isLoading } = useComplaints();
   const { addNotification } = useNotifications();
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -28,7 +30,8 @@ const AdminComplaints = () => {
       const matchSearch =
         c.title.toLowerCase().includes(search.toLowerCase()) ||
         c.id.toLowerCase().includes(search.toLowerCase()) ||
-        c.userEmail.toLowerCase().includes(search.toLowerCase());
+        c.userEmail.toLowerCase().includes(search.toLowerCase()) ||
+        (c.phone || "").includes(search);
       const matchStatus = statusFilter === "All" || c.status === statusFilter;
       const matchCategory = categoryFilter === "All" || c.category === categoryFilter;
       return matchSearch && matchStatus && matchCategory;
@@ -81,7 +84,7 @@ const AdminComplaints = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="page-header">All Complaints</h1>
+        <h1 className="page-header">{t("nav.all_complaints")}</h1>
         <p className="text-muted-foreground mt-1">Manage, filter, and update complaint statuses</p>
       </div>
 
@@ -90,7 +93,7 @@ const AdminComplaints = () => {
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search by title, ID, or user..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+            <Input placeholder="Search by title, ID, user, or phone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
           </div>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="w-[160px]">
@@ -106,15 +109,15 @@ const AdminComplaints = () => {
           </Select>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {["All", ...statuses].map((s) => (
+          {[t("common.all"), ...statuses].map((s, i) => (
             <button
               key={s}
-              onClick={() => setStatusFilter(s)}
+              onClick={() => setStatusFilter(i === 0 ? "All" : s)}
               className={`px-3 py-2 text-sm font-medium rounded-lg transition-all duration-150 flex items-center gap-1 ${
-                statusFilter === s ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                statusFilter === (i === 0 ? "All" : s) ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
               }`}
             >
-              {s === "All" && <Filter className="w-3 h-3" />}
+              {i === 0 && <Filter className="w-3 h-3" />}
               {s}
             </button>
           ))}
@@ -129,26 +132,25 @@ const AdminComplaints = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th onClick={() => toggleSort("id")} className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors">
+                <th onClick={() => toggleSort("id")} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors">
                   <span className="flex items-center gap-1">ID <SortIcon column="id" /></span>
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">IMG</th>
-                <th onClick={() => toggleSort("title")} className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">IMG</th>
+                <th onClick={() => toggleSort("title")} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors">
                   <span className="flex items-center gap-1">Title <SortIcon column="title" /></span>
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Category</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Location</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
-                <th onClick={() => toggleSort("priority")} className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Category</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">User / Contact</th>
+                <th onClick={() => toggleSort("priority")} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors">
                   <span className="flex items-center gap-1">Priority <SortIcon column="priority" /></span>
                 </th>
-                <th onClick={() => toggleSort("status")} className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors">
+                <th onClick={() => toggleSort("status")} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors">
                   <span className="flex items-center gap-1">Status <SortIcon column="status" /></span>
                 </th>
-                <th onClick={() => toggleSort("createdAt")} className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors hidden sm:table-cell">
+                <th onClick={() => toggleSort("createdAt")} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors hidden sm:table-cell">
                   <span className="flex items-center gap-1">Date <SortIcon column="createdAt" /></span>
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Action</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -160,8 +162,8 @@ const AdminComplaints = () => {
                   transition={{ delay: i * 0.02 }}
                   className="hover:bg-muted/50 transition-colors"
                 >
-                  <td className="px-6 py-3.5 text-sm font-mono text-primary font-bold whitespace-nowrap">{c.id}</td>
-                  <td className="px-6 py-3.5">
+                  <td className="px-4 py-3 text-sm font-mono text-primary font-bold whitespace-nowrap">{c.id}</td>
+                  <td className="px-4 py-3">
                     {c.image ? (
                       <button
                         onClick={() => setImageModal(c.image!)}
@@ -178,20 +180,33 @@ const AdminComplaints = () => {
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-3.5 text-sm font-medium text-foreground max-w-[180px] truncate">{c.title}</td>
-                  <td className="px-6 py-3.5 text-sm text-muted-foreground hidden lg:table-cell">
+                  <td className="px-4 py-3 text-sm font-medium text-foreground max-w-[160px] truncate">{c.title}</td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground hidden lg:table-cell">
                     <span className="px-2 py-0.5 rounded-md bg-muted text-xs font-medium">{c.category}</span>
                   </td>
-                  <td className="px-6 py-3.5 text-sm text-muted-foreground hidden md:table-cell">{c.location}</td>
-                  <td className="px-6 py-3.5 text-sm text-muted-foreground">{c.userEmail}</td>
-                  <td className={`px-6 py-3.5 text-sm font-semibold ${priorityColor[c.priority]}`}>● {c.priority}</td>
-                  <td className="px-6 py-3.5">
+                  <td className="px-4 py-3">
+                    <div className="text-sm text-muted-foreground">{c.userEmail}</div>
+                    {c.phone && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground/70 mt-0.5">
+                        <Phone className="w-3 h-3" />
+                        <a href={`tel:${c.phone}`} className="hover:text-primary">{c.phone}</a>
+                      </div>
+                    )}
+                    {c.contactEmail && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground/70 mt-0.5">
+                        <Mail className="w-3 h-3" />
+                        <span className="truncate max-w-[120px]">{c.contactEmail}</span>
+                      </div>
+                    )}
+                  </td>
+                  <td className={`px-4 py-3 text-sm font-semibold ${priorityColor[c.priority]}`}>● {c.priority}</td>
+                  <td className="px-4 py-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusBg[c.status]}`}>{c.status}</span>
                   </td>
-                  <td className="px-6 py-3.5 text-xs text-muted-foreground whitespace-nowrap hidden sm:table-cell">
+                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap hidden sm:table-cell">
                     {new Date(c.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-3.5">
+                  <td className="px-4 py-3">
                     <Select value={c.status} onValueChange={(val) => handleStatusChange(c.id, val as Complaint["status"], c.title)}>
                       <SelectTrigger className="w-[130px] h-8 text-xs">
                         <SelectValue />
@@ -211,7 +226,7 @@ const AdminComplaints = () => {
         {filtered.length === 0 && (
           <div className="p-12 text-center text-muted-foreground">
             <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="font-medium">No complaints found</p>
+            <p className="font-medium">{t("track.no_results")}</p>
             <p className="text-xs mt-1">Try adjusting your filters or search term</p>
           </div>
         )}

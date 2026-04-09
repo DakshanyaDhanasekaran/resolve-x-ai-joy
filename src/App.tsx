@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ComplaintProvider } from "@/contexts/ComplaintContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import LandingPage from "@/pages/LandingPage";
 import Login from "@/pages/Login";
@@ -60,16 +61,18 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AuthProvider>
-        <ComplaintProvider>
-          <NotificationProvider>
-            <BrowserRouter>
-              <AppRoutes />
-              <Chatbot />
-            </BrowserRouter>
-          </NotificationProvider>
-        </ComplaintProvider>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <ComplaintProvider>
+            <NotificationProvider>
+              <BrowserRouter>
+                <AppRoutes />
+                <Chatbot />
+              </BrowserRouter>
+            </NotificationProvider>
+          </ComplaintProvider>
+        </AuthProvider>
+      </LanguageProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

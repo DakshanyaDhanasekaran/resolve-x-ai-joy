@@ -2,29 +2,32 @@ import { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { useLanguage, LANGUAGE_OPTIONS } from "@/contexts/LanguageContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, FileText, Search, LogOut, Shield, Menu, X,
   User, ChevronDown, Settings, Bell, Sparkles, BarChart3, Check, Trash2,
+  Globe,
 } from "lucide-react";
 
 interface NavItem {
   label: string;
+  labelKey: string;
   path: string;
   icon: React.ElementType;
 }
 
 const userNav: NavItem[] = [
-  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-  { label: "Submit Complaint", path: "/submit", icon: FileText },
-  { label: "Track Complaints", path: "/track", icon: Search },
+  { label: "Dashboard", labelKey: "nav.dashboard", path: "/dashboard", icon: LayoutDashboard },
+  { label: "Submit Complaint", labelKey: "nav.submit", path: "/submit", icon: FileText },
+  { label: "Track Complaints", labelKey: "nav.track", path: "/track", icon: Search },
 ];
 
 const adminNav: NavItem[] = [
-  { label: "Dashboard", path: "/admin", icon: LayoutDashboard },
-  { label: "All Complaints", path: "/admin/complaints", icon: FileText },
-  { label: "Analytics", path: "/admin", icon: BarChart3 },
-  { label: "Settings", path: "/admin", icon: Settings },
+  { label: "Dashboard", labelKey: "nav.dashboard", path: "/admin", icon: LayoutDashboard },
+  { label: "All Complaints", labelKey: "nav.all_complaints", path: "/admin/complaints", icon: FileText },
+  { label: "Analytics", labelKey: "nav.analytics", path: "/admin", icon: BarChart3 },
+  { label: "Settings", labelKey: "nav.settings", path: "/admin", icon: Settings },
 ];
 
 const DashboardLayout = ({ children }: { children: ReactNode }) => {
@@ -34,7 +37,9 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
+  const { language, setLanguage, t } = useLanguage();
 
   const nav = user?.role === "admin" ? adminNav : userNav;
 
@@ -43,12 +48,20 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
     navigate("/");
   };
 
+  const closeAllDropdowns = () => {
+    setProfileOpen(false);
+    setNotifOpen(false);
+    setLangOpen(false);
+  };
+
   const notifTypeColor: Record<string, string> = {
     success: "bg-success",
     info: "bg-primary",
     warning: "bg-warning",
     error: "bg-destructive",
   };
+
+  const currentLang = LANGUAGE_OPTIONS.find(l => l.value === language);
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -66,7 +79,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       </div>
 
       <div className="px-5 pt-5 pb-2">
-        <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "hsl(220, 15%, 40%)" }}>Navigation</span>
+        <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "hsl(220, 15%, 40%)" }}>{t("nav.navigation")}</span>
       </div>
 
       <nav className="flex-1 px-3 pb-4 space-y-1">
@@ -74,14 +87,14 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
           const active = location.pathname === item.path;
           return (
             <Link
-              key={item.label}
+              key={item.labelKey}
               to={item.path}
               onClick={() => setSidebarOpen(false)}
               className={`sidebar-nav-item ${active ? "active" : ""}`}
             >
               <item.icon className="w-5 h-5" />
-              <span>{item.label}</span>
-              {item.label === "Dashboard" && active && (
+              <span>{t(item.labelKey)}</span>
+              {item.labelKey === "nav.dashboard" && active && (
                 <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse" />
               )}
             </Link>
@@ -101,7 +114,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
         </div>
         <button onClick={handleLogout} className="sidebar-nav-item w-full text-left" style={{ color: "hsl(0, 72%, 65%)" }}>
           <LogOut className="w-5 h-5" />
-          <span>Logout</span>
+          <span>{t("nav.logout")}</span>
         </button>
       </div>
     </div>
@@ -144,7 +157,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
             </button>
             <div className="hidden sm:block">
               <h1 className="text-base font-semibold text-foreground leading-none">
-                {nav.find((n) => n.path === location.pathname)?.label || "Dashboard"}
+                {t(nav.find((n) => n.path === location.pathname)?.labelKey || "nav.dashboard")}
               </h1>
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
@@ -153,10 +166,47 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
           </div>
 
           <div className="flex items-center gap-1.5">
+            {/* Language selector */}
+            <div className="relative">
+              <button
+                onClick={() => { setLangOpen(!langOpen); setNotifOpen(false); setProfileOpen(false); }}
+                className="flex items-center gap-1.5 p-2 rounded-xl hover:bg-muted transition-colors text-sm"
+              >
+                <Globe className="w-4 h-4 text-muted-foreground" />
+                <span className="hidden sm:inline text-xs font-medium text-muted-foreground">{currentLang?.flag}</span>
+              </button>
+              <AnimatePresence>
+                {langOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                    transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                    className="absolute right-0 mt-2 w-44 bg-card border border-border rounded-xl overflow-hidden z-50"
+                    style={{ boxShadow: "var(--shadow-elevated)" }}
+                  >
+                    <div className="p-1.5">
+                      {LANGUAGE_OPTIONS.map((lang) => (
+                        <button
+                          key={lang.value}
+                          onClick={() => { setLanguage(lang.value); setLangOpen(false); }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors ${
+                            language === lang.value ? "bg-primary/10 text-primary font-semibold" : "text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          <span className="text-base">{lang.flag}</span>
+                          <span>{lang.label}</span>
+                          {language === lang.value && <Check className="w-3.5 h-3.5 ml-auto" />}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {/* Notification bell */}
             <div className="relative">
               <button
-                onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); }}
+                onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); setLangOpen(false); }}
                 className="relative p-2.5 rounded-xl hover:bg-muted transition-colors"
               >
                 <Bell className="w-5 h-5 text-muted-foreground" />
@@ -175,11 +225,11 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                     style={{ boxShadow: "var(--shadow-elevated)" }}
                   >
                     <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                      <p className="text-sm font-semibold text-foreground">Notifications</p>
+                      <p className="text-sm font-semibold text-foreground">{t("notif.title")}</p>
                       <div className="flex items-center gap-1.5">
                         {unreadCount > 0 && (
                           <button onClick={markAllAsRead} className="text-[10px] text-primary hover:underline flex items-center gap-1">
-                            <Check className="w-3 h-3" /> Mark all read
+                            <Check className="w-3 h-3" /> {t("notif.mark_read")}
                           </button>
                         )}
                         {notifications.length > 0 && (
@@ -193,7 +243,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                       {notifications.length === 0 ? (
                         <div className="p-6 text-center text-muted-foreground">
                           <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                          <p className="text-xs">No notifications yet</p>
+                          <p className="text-xs">{t("notif.empty")}</p>
                         </div>
                       ) : (
                         <div className="p-1.5 space-y-0.5">
@@ -229,7 +279,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
             {/* Profile dropdown */}
             <div className="relative">
               <button
-                onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
+                onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); setLangOpen(false); }}
                 className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-muted transition-colors"
               >
                 <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center ring-2 ring-primary/20">
@@ -257,7 +307,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                     <div className="p-1.5">
                       <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-destructive rounded-lg hover:bg-destructive/10 transition-colors">
                         <LogOut className="w-4 h-4" />
-                        Sign out
+                        {t("nav.logout")}
                       </button>
                     </div>
                   </motion.div>
