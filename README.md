@@ -1,3 +1,4 @@
-# Welcome to your Lovable project
+Resolve X
+
 
 TODO: Document your project here
