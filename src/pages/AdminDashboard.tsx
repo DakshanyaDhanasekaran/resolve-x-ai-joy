@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useComplaints, CATEGORIES } from "@/contexts/ComplaintContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { motion } from "framer-motion";
 import {
   FileText, Clock, CheckCircle, AlertTriangle, TrendingUp,
