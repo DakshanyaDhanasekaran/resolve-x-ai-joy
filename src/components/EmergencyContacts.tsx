@@ -26,7 +26,7 @@ const EmergencyContacts = () => {
         </div>
         <div>
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">{t("emergency.title")}</h3>
-          <p className="text-[11px] text-muted-foreground">For urgent assistance, call immediately</p>
+          <p className="text-[11px] text-muted-foreground">{t("emergency.subtitle")}</p>
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4">
