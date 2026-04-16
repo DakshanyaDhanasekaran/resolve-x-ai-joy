@@ -92,17 +92,17 @@ const AdminDashboard = () => {
   const highPriorityCount = complaints.filter((c) => c.priority === "High" && c.status !== "Resolved").length;
 
   const stats = [
-    { label: "Total Complaints", value: total, icon: FileText, color: "text-primary", bg: "bg-primary/10", cardClass: "stat-card-primary", change: 18, sparkData: [3, 5, 4, 7, 6, 8, 10, 12], sparkColor: "hsl(220, 70%, 50%)", subtitle: "All time" },
-    { label: "Pending", value: pending, icon: Clock, color: "text-warning", bg: "bg-warning/10", cardClass: "stat-card-warning", change: -8, sparkData: [5, 4, 6, 5, 3, 4, 3, 5], sparkColor: "hsl(38, 92%, 55%)", subtitle: "Needs attention" },
-    { label: "In Progress", value: inProgress, icon: AlertTriangle, color: "text-accent", bg: "bg-accent/10", cardClass: "stat-card-accent", change: 15, sparkData: [1, 2, 2, 3, 2, 3, 2, 3], sparkColor: "hsl(200, 80%, 50%)", subtitle: "Being handled" },
-    { label: "Resolved", value: resolved, icon: CheckCircle, color: "text-success", bg: "bg-success/10", cardClass: "stat-card-success", change: 32, sparkData: [1, 1, 2, 2, 3, 3, 4, 3], sparkColor: "hsl(152, 60%, 42%)", subtitle: "Completed" },
+    { label: t("dash.total"), value: total, icon: FileText, color: "text-primary", bg: "bg-primary/10", cardClass: "stat-card-primary", change: 18, sparkData: [3, 5, 4, 7, 6, 8, 10, 12], sparkColor: "hsl(220, 70%, 50%)", subtitle: t("dash.all_time") },
+    { label: t("dash.pending"), value: pending, icon: Clock, color: "text-warning", bg: "bg-warning/10", cardClass: "stat-card-warning", change: -8, sparkData: [5, 4, 6, 5, 3, 4, 3, 5], sparkColor: "hsl(38, 92%, 55%)", subtitle: t("admin.needs_attention") },
+    { label: t("dash.in_progress"), value: inProgress, icon: AlertTriangle, color: "text-accent", bg: "bg-accent/10", cardClass: "stat-card-accent", change: 15, sparkData: [1, 2, 2, 3, 2, 3, 2, 3], sparkColor: "hsl(200, 80%, 50%)", subtitle: t("dash.being_handled") },
+    { label: t("dash.resolved"), value: resolved, icon: CheckCircle, color: "text-success", bg: "bg-success/10", cardClass: "stat-card-success", change: 32, sparkData: [1, 1, 2, 2, 3, 3, 4, 3], sparkColor: "hsl(152, 60%, 42%)", subtitle: t("dash.completed") },
   ];
 
   const pieData = [
-    { name: "Pending", value: pending, color: "hsl(38, 92%, 55%)" },
-    { name: "In Progress", value: inProgress, color: "hsl(200, 80%, 50%)" },
-    { name: "Resolved", value: resolved, color: "hsl(152, 60%, 42%)" },
-    { name: "Rejected", value: rejected, color: "hsl(0, 72%, 55%)" },
+    { name: t("dash.pending"), value: pending, color: "hsl(38, 92%, 55%)" },
+    { name: t("dash.in_progress"), value: inProgress, color: "hsl(200, 80%, 50%)" },
+    { name: t("dash.resolved"), value: resolved, color: "hsl(152, 60%, 42%)" },
+    { name: t("dash.rejected"), value: rejected, color: "hsl(0, 72%, 55%)" },
   ].filter((d) => d.value > 0);
 
   const priorityData = [
@@ -131,14 +131,14 @@ const AdminDashboard = () => {
             <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
               <Activity className="w-5 h-5" style={{ color: "hsl(0,0%,100%)" }} />
             </div>
-            Admin Dashboard
+            {t("admin.dashboard")}
           </h1>
-          <p className="text-muted-foreground mt-1.5">Real-time analytics and complaint management</p>
+          <p className="text-muted-foreground mt-1.5">{t("admin.realtime")}</p>
         </div>
         <div className="flex gap-3">
           <Link to="/admin/complaints">
             <Button className="gradient-primary text-primary-foreground gap-2 h-11 px-5 shadow-md hover:shadow-lg transition-shadow">
-              <BarChart3 className="w-4 h-4" /> Manage All
+              <BarChart3 className="w-4 h-4" /> {t("admin.manage_all")}
             </Button>
           </Link>
         </div>
@@ -156,7 +156,7 @@ const AdminDashboard = () => {
             <Zap className="w-4 h-4" style={{ color: "hsl(0,0%,100%)" }} />
           </div>
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Resolution Rate</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{t("dash.resolution_rate")}</p>
             <p className="text-sm font-bold text-success"><AnimatedCounter end={resolutionRate} />%</p>
           </div>
         </div>
@@ -165,8 +165,8 @@ const AdminDashboard = () => {
             <Timer className="w-4 h-4" style={{ color: "hsl(0,0%,100%)" }} />
           </div>
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Avg. Resolution</p>
-            <p className="text-sm font-bold text-foreground">{avgResolutionDays} days</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{t("dash.avg_resolution")}</p>
+            <p className="text-sm font-bold text-foreground">{avgResolutionDays} {t("common.days")}</p>
           </div>
         </div>
         {highPriorityCount > 0 && (
@@ -175,8 +175,8 @@ const AdminDashboard = () => {
               <AlertTriangle className="w-4 h-4" style={{ color: "hsl(0,0%,100%)" }} />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">High Priority</p>
-              <p className="text-sm font-bold text-destructive">{highPriorityCount} open</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{t("admin.high_priority")}</p>
+              <p className="text-sm font-bold text-destructive">{highPriorityCount} {t("admin.open")}</p>
             </div>
           </div>
         )}
@@ -202,7 +202,7 @@ const AdminDashboard = () => {
                 </p>
                 <div className="mt-2 flex items-center gap-1.5">
                   <ChangeIndicator change={stat.change} />
-                  <span className="text-[10px] text-muted-foreground">vs last week</span>
+                  <span className="text-[10px] text-muted-foreground">{t("common.vs_last_week")}</span>
                 </div>
               </div>
               <div className="w-24 h-12 opacity-50 group-hover:opacity-100 transition-opacity">
@@ -218,21 +218,21 @@ const AdminDashboard = () => {
         <motion.div className="lg:col-span-2 chart-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Complaint Trends</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Submitted vs resolved over time</p>
+              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">{t("admin.complaint_trends")}</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("admin.trends_sub")}</p>
             </div>
             <div className="flex bg-muted rounded-lg p-0.5">
               <button
                 onClick={() => setTrendView("daily")}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${trendView === "daily" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
               >
-                <Calendar className="w-3 h-3 inline mr-1" />Daily
+                <Calendar className="w-3 h-3 inline mr-1" />{t("admin.daily")}
               </button>
               <button
                 onClick={() => setTrendView("weekly")}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${trendView === "weekly" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
               >
-                <Calendar className="w-3 h-3 inline mr-1" />Weekly
+                <Calendar className="w-3 h-3 inline mr-1" />{t("admin.weekly")}
               </button>
             </div>
           </div>
@@ -248,8 +248,8 @@ const AdminDashboard = () => {
                   <XAxis dataKey={trendXKey} tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-                  <Area type="monotone" dataKey="submitted" stroke="hsl(220, 70%, 50%)" fill="url(#gradS)" strokeWidth={2.5} name="Submitted" dot={{ r: 3.5, fill: "hsl(220, 70%, 50%)", strokeWidth: 2, stroke: "hsl(0, 0%, 100%)" }} />
-                  <Area type="monotone" dataKey="resolved" stroke="hsl(152, 60%, 42%)" fill="url(#gradR)" strokeWidth={2.5} name="Resolved" dot={{ r: 3.5, fill: "hsl(152, 60%, 42%)", strokeWidth: 2, stroke: "hsl(0, 0%, 100%)" }} />
+                  <Area type="monotone" dataKey="submitted" stroke="hsl(220, 70%, 50%)" fill="url(#gradS)" strokeWidth={2.5} name={t("admin.submitted")} dot={{ r: 3.5, fill: "hsl(220, 70%, 50%)", strokeWidth: 2, stroke: "hsl(0, 0%, 100%)" }} />
+                  <Area type="monotone" dataKey="resolved" stroke="hsl(152, 60%, 42%)" fill="url(#gradR)" strokeWidth={2.5} name={t("dash.resolved")} dot={{ r: 3.5, fill: "hsl(152, 60%, 42%)", strokeWidth: 2, stroke: "hsl(0, 0%, 100%)" }} />
                 </AreaChart>
               ) : (
                 <LineChart data={trendData}>
@@ -257,8 +257,8 @@ const AdminDashboard = () => {
                   <XAxis dataKey={trendXKey} tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-                  <Line type="monotone" dataKey="submitted" stroke="hsl(220, 70%, 50%)" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(220, 70%, 50%)", strokeWidth: 2, stroke: "hsl(0, 0%, 100%)" }} name="Submitted" />
-                  <Line type="monotone" dataKey="resolved" stroke="hsl(152, 60%, 42%)" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(152, 60%, 42%)", strokeWidth: 2, stroke: "hsl(0, 0%, 100%)" }} name="Resolved" />
+                  <Line type="monotone" dataKey="submitted" stroke="hsl(220, 70%, 50%)" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(220, 70%, 50%)", strokeWidth: 2, stroke: "hsl(0, 0%, 100%)" }} name={t("admin.submitted")} />
+                  <Line type="monotone" dataKey="resolved" stroke="hsl(152, 60%, 42%)" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(152, 60%, 42%)", strokeWidth: 2, stroke: "hsl(0, 0%, 100%)" }} name={t("dash.resolved")} />
                 </LineChart>
               )}
             </ResponsiveContainer>
@@ -267,8 +267,8 @@ const AdminDashboard = () => {
 
         {/* Pie chart */}
         <motion.div className="chart-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-          <h3 className="text-sm font-semibold text-foreground mb-1 uppercase tracking-wide">Status Distribution</h3>
-          <p className="text-xs text-muted-foreground mb-4">Current complaint breakdown</p>
+          <h3 className="text-sm font-semibold text-foreground mb-1 uppercase tracking-wide">{t("admin.status_distribution")}</h3>
+          <p className="text-xs text-muted-foreground mb-4">{t("admin.status_sub")}</p>
           {pieData.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={180}>
@@ -301,8 +301,8 @@ const AdminDashboard = () => {
       {/* Charts row 2: Category + Priority */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <motion.div className="chart-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          <h3 className="text-sm font-semibold text-foreground mb-1 uppercase tracking-wide">Complaints by Category</h3>
-          <p className="text-xs text-muted-foreground mb-4">Distribution across complaint types</p>
+          <h3 className="text-sm font-semibold text-foreground mb-1 uppercase tracking-wide">{t("admin.by_category")}</h3>
+          <p className="text-xs text-muted-foreground mb-4">{t("admin.category_sub")}</p>
           {categoryData.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={categoryData} layout="vertical" barSize={18} margin={{ left: 10 }}>
@@ -310,7 +310,7 @@ const AdminDashboard = () => {
                 <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} width={85} />
                 <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-                <Bar dataKey="count" radius={[0, 8, 8, 0]} name="Complaints" animationDuration={1200}>
+                <Bar dataKey="count" radius={[0, 8, 8, 0]} name={t("common.complaints")} animationDuration={1200}>
                   {categoryData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
                 </Bar>
               </BarChart>
@@ -319,15 +319,15 @@ const AdminDashboard = () => {
         </motion.div>
 
         <motion.div className="chart-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}>
-          <h3 className="text-sm font-semibold text-foreground mb-1 uppercase tracking-wide">Priority Breakdown</h3>
-          <p className="text-xs text-muted-foreground mb-4">Complaint severity levels</p>
+          <h3 className="text-sm font-semibold text-foreground mb-1 uppercase tracking-wide">{t("admin.priority_breakdown")}</h3>
+          <p className="text-xs text-muted-foreground mb-4">{t("admin.priority_sub")}</p>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={priorityData} barSize={52}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 92%)" vertical={false} />
               <XAxis dataKey="priority" tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-              <Bar dataKey="count" radius={[8, 8, 0, 0]} name="Complaints" animationDuration={1200}>
+              <Bar dataKey="count" radius={[8, 8, 0, 0]} name={t("common.complaints")} animationDuration={1200}>
                 {priorityData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
               </Bar>
             </BarChart>
@@ -339,21 +339,21 @@ const AdminDashboard = () => {
       <motion.div className="bg-card border border-border rounded-xl overflow-hidden" style={{ boxShadow: "var(--shadow-card)" }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Latest Complaints</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Most recent submissions</p>
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">{t("admin.latest")}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("admin.latest_sub")}</p>
           </div>
-          <Link to="/admin/complaints" className="text-xs text-primary font-semibold hover:underline">View all →</Link>
+          <Link to="/admin/complaints" className="text-xs text-primary font-semibold hover:underline">{t("admin.view_all")}</Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="table-header">ID</th>
-                <th className="table-header">Title</th>
-                <th className="table-header hidden md:table-cell">Category</th>
-                <th className="table-header">User</th>
-                <th className="table-header">Status</th>
-                <th className="table-header">Priority</th>
+                <th className="table-header">{t("common.id")}</th>
+                <th className="table-header">{t("common.title")}</th>
+                <th className="table-header hidden md:table-cell">{t("common.category")}</th>
+                <th className="table-header">{t("common.user")}</th>
+                <th className="table-header">{t("common.status")}</th>
+                <th className="table-header">{t("common.priority")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
