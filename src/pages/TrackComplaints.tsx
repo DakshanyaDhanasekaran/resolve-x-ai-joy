@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useComplaints, Complaint } from "@/contexts/ComplaintContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Link } from "react-router-dom";
 import { StatusBadge } from "@/pages/UserDashboard";
 import { motion, AnimatePresence } from "framer-motion";
@@ -53,7 +54,7 @@ const StatusTimeline = ({ complaint }: { complaint: Complaint }) => {
           <div className="w-8 h-8 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center ring-2 ring-offset-2 ring-destructive">
             <X className="w-4 h-4" />
           </div>
-          <span className="text-[10px] mt-1.5 font-medium text-destructive">Rejected</span>
+          <span className="text-[10px] mt-1.5 font-medium text-destructive">{complaint.status}</span>
         </div>
       )}
     </div>
@@ -63,6 +64,7 @@ const StatusTimeline = ({ complaint }: { complaint: Complaint }) => {
 const TrackComplaints = () => {
   const { user } = useAuth();
   const { complaints, isLoading } = useComplaints();
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
@@ -77,19 +79,26 @@ const TrackComplaints = () => {
   });
 
   const statuses = ["All", "Pending", "In Progress", "Resolved", "Rejected"];
+  const statusLabels: Record<string, string> = {
+    "All": t("common.all"),
+    "Pending": t("dash.pending"),
+    "In Progress": t("dash.in_progress"),
+    "Resolved": t("dash.resolved"),
+    "Rejected": t("dash.rejected"),
+  };
   const priorityColor: Record<string, string> = { Low: "text-success", Medium: "text-warning", High: "text-destructive" };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="page-header">Track Complaints</h1>
-        <p className="text-muted-foreground mt-1">Monitor the status of your submitted complaints</p>
+        <h1 className="page-header">{t("track.title")}</h1>
+        <p className="text-muted-foreground mt-1">{t("track.subtitle")}</p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search by title or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+          <Input placeholder={t("track.search")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         <div className="flex gap-2 flex-wrap">
           {statuses.map((s) => (
@@ -99,18 +108,20 @@ const TrackComplaints = () => {
               className={`px-3 py-2 text-sm font-medium rounded-lg transition-all duration-150 ${
                 statusFilter === s ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
               }`}
-            >{s}</button>
+            >{statusLabels[s]}</button>
           ))}
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground">{filtered.length} complaint{filtered.length !== 1 ? "s" : ""} found</p>
+      <p className="text-xs text-muted-foreground">
+        {filtered.length} {filtered.length !== 1 ? t("track.complaints_found") : t("track.complaint_found")}
+      </p>
 
       {filtered.length === 0 ? (
         <div className="bg-card border border-border rounded-xl p-12 text-center text-muted-foreground" style={{ boxShadow: "var(--shadow-card)" }}>
           <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">No complaints found</p>
-          <p className="text-xs mt-1">Try adjusting your search or filters</p>
+          <p className="font-medium">{t("track.no_results")}</p>
+          <p className="text-xs mt-1">{t("track.no_results_sub")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -134,7 +145,7 @@ const TrackComplaints = () => {
                     </span>
                     {c.image && (
                       <span className="px-2 py-0.5 rounded-md bg-primary/10 text-xs font-medium text-primary flex items-center gap-1">
-                        <ImageIcon className="w-2.5 h-2.5" /> Image
+                        <ImageIcon className="w-2.5 h-2.5" /> {t("track.image")}
                       </span>
                     )}
                   </div>
@@ -148,18 +159,17 @@ const TrackComplaints = () => {
                 <div className="flex flex-col items-end gap-2">
                   <StatusBadge status={c.status} />
                   <Link to={`/complaint/${c.id}`} className="text-xs text-primary font-medium flex items-center gap-1 hover:underline" onClick={(e) => e.stopPropagation()}>
-                    View details <ExternalLink className="w-3 h-3" />
+                    {t("track.view_details")} <ExternalLink className="w-3 h-3" />
                   </Link>
                   {c.updatedAt !== c.createdAt && (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="w-3 h-3" />
-                      Updated {new Date(c.updatedAt).toLocaleDateString()}
+                      {t("track.updated")} {new Date(c.updatedAt).toLocaleDateString()}
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Expanded details */}
               <AnimatePresence>
                 {selectedComplaint?.id === c.id && (
                   <motion.div

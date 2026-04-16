@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useComplaints } from "@/contexts/ComplaintContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -24,6 +25,7 @@ const CHART_TOOLTIP_STYLE = {
 const UserDashboard = () => {
   const { user } = useAuth();
   const { complaints, isLoading } = useComplaints();
+  const { t } = useLanguage();
 
   if (isLoading) return <DashboardSkeleton />;
 
@@ -32,51 +34,47 @@ const UserDashboard = () => {
   const inProgress = userComplaints.filter((c) => c.status === "In Progress").length;
   const resolved = userComplaints.filter((c) => c.status === "Resolved").length;
 
-  // Avg resolution time (mock)
   const avgResolutionDays = userComplaints.length > 0 ? 4.2 : 0;
 
   const stats = [
     {
-      label: "Total Complaints", value: userComplaints.length, icon: FileText,
+      label: t("dash.total"), value: userComplaints.length, icon: FileText,
       color: "text-primary", bg: "bg-primary/10", cardClass: "stat-card-primary",
       change: 12, sparkData: [1, 2, 1, 3, 2, 4, 3], sparkColor: "hsl(220, 70%, 50%)",
-      subtitle: "All time"
+      subtitle: t("dash.all_time")
     },
     {
-      label: "Pending", value: pending, icon: Clock,
+      label: t("dash.pending"), value: pending, icon: Clock,
       color: "text-warning", bg: "bg-warning/10", cardClass: "stat-card-warning",
       change: -5, sparkData: [3, 2, 4, 3, 2, 1, 2], sparkColor: "hsl(38, 92%, 55%)",
-      subtitle: "Awaiting review"
+      subtitle: t("dash.awaiting")
     },
     {
-      label: "In Progress", value: inProgress, icon: AlertTriangle,
+      label: t("dash.in_progress"), value: inProgress, icon: AlertTriangle,
       color: "text-accent", bg: "bg-accent/10", cardClass: "stat-card-accent",
       change: 0, sparkData: [1, 1, 2, 1, 2, 2, 1], sparkColor: "hsl(200, 80%, 50%)",
-      subtitle: "Being handled"
+      subtitle: t("dash.being_handled")
     },
     {
-      label: "Resolved", value: resolved, icon: CheckCircle,
+      label: t("dash.resolved"), value: resolved, icon: CheckCircle,
       color: "text-success", bg: "bg-success/10", cardClass: "stat-card-success",
       change: 25, sparkData: [0, 1, 1, 2, 2, 3, 4], sparkColor: "hsl(152, 60%, 42%)",
-      subtitle: "Completed"
+      subtitle: t("dash.completed")
     },
   ];
 
-  // Status pie data
   const pieData = [
-    { name: "Pending", value: pending, color: "hsl(38, 92%, 55%)" },
-    { name: "In Progress", value: inProgress, color: "hsl(200, 80%, 50%)" },
-    { name: "Resolved", value: resolved, color: "hsl(152, 60%, 42%)" },
+    { name: t("dash.pending"), value: pending, color: "hsl(38, 92%, 55%)" },
+    { name: t("dash.in_progress"), value: inProgress, color: "hsl(200, 80%, 50%)" },
+    { name: t("dash.resolved"), value: resolved, color: "hsl(152, 60%, 42%)" },
   ].filter((d) => d.value > 0);
 
-  // Category breakdown
   const categoryMap = new Map<string, number>();
   userComplaints.forEach((c) => {
     categoryMap.set(c.category, (categoryMap.get(c.category) || 0) + 1);
   });
   const categoryData = Array.from(categoryMap.entries()).map(([name, count]) => ({ name, count }));
 
-  // Activity timeline data
   const activityData = userComplaints
     .map((c) => ({
       date: new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
@@ -103,12 +101,12 @@ const UserDashboard = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="page-header">Welcome back, {user?.name} 👋</h1>
-          <p className="text-muted-foreground mt-1">Here's an overview of your complaints</p>
+          <h1 className="page-header">{t("dash.welcome")}, {user?.name} 👋</h1>
+          <p className="text-muted-foreground mt-1">{t("dash.overview")}</p>
         </div>
         <Link to="/submit">
           <Button className="gradient-primary text-primary-foreground gap-2 h-11 px-5 shadow-md hover:shadow-lg transition-shadow">
-            <Plus className="w-4 h-4" /> New Complaint
+            <Plus className="w-4 h-4" /> {t("dash.new_complaint")}
           </Button>
         </Link>
       </div>
@@ -125,7 +123,7 @@ const UserDashboard = () => {
             <Zap className="w-4 h-4" style={{ color: "hsl(0,0%,100%)" }} />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Resolution Rate</p>
+            <p className="text-xs text-muted-foreground">{t("dash.resolution_rate")}</p>
             <p className="text-sm font-bold text-foreground"><AnimatedCounter end={resolutionRate} />%</p>
           </div>
         </div>
@@ -134,8 +132,8 @@ const UserDashboard = () => {
             <Timer className="w-4 h-4" style={{ color: "hsl(0,0%,100%)" }} />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Avg. Resolution</p>
-            <p className="text-sm font-bold text-foreground">{avgResolutionDays} days</p>
+            <p className="text-xs text-muted-foreground">{t("dash.avg_resolution")}</p>
+            <p className="text-sm font-bold text-foreground">{avgResolutionDays} {t("common.days")}</p>
           </div>
         </div>
       </motion.div>
@@ -166,7 +164,7 @@ const UserDashboard = () => {
                 </p>
                 <div className="mt-2 flex items-center gap-1.5">
                   <ChangeIndicator change={stat.change} />
-                  <span className="text-[10px] text-muted-foreground">vs last week</span>
+                  <span className="text-[10px] text-muted-foreground">{t("common.vs_last_week")}</span>
                 </div>
               </div>
               <div className="w-24 h-12 opacity-50 group-hover:opacity-100 transition-opacity">
@@ -179,15 +177,14 @@ const UserDashboard = () => {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* Status overview */}
         <motion.div
           className="lg:col-span-2 chart-card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <h3 className="text-sm font-semibold text-foreground mb-1 uppercase tracking-wide">Status Overview</h3>
-          <p className="text-xs text-muted-foreground mb-4">Distribution of your complaint statuses</p>
+          <h3 className="text-sm font-semibold text-foreground mb-1 uppercase tracking-wide">{t("dash.status_overview")}</h3>
+          <p className="text-xs text-muted-foreground mb-4">{t("dash.status_overview_desc")}</p>
           {pieData.length > 0 ? (
             <div className="flex items-center gap-4">
               <ResponsiveContainer width={150} height={150}>
@@ -227,12 +224,11 @@ const UserDashboard = () => {
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
               <FileText className="w-10 h-10 mb-2 opacity-30" />
-              <p className="text-sm">No data yet</p>
+              <p className="text-sm">{t("dash.no_data")}</p>
             </div>
           )}
         </motion.div>
 
-        {/* Category breakdown */}
         <motion.div
           className="lg:col-span-3 chart-card"
           initial={{ opacity: 0, y: 20 }}
@@ -240,9 +236,9 @@ const UserDashboard = () => {
           transition={{ delay: 0.4 }}
         >
           <h3 className="text-sm font-semibold text-foreground mb-1 uppercase tracking-wide flex items-center gap-2">
-            <Tag className="w-4 h-4 text-primary" /> By Category
+            <Tag className="w-4 h-4 text-primary" /> {t("dash.by_category")}
           </h3>
-          <p className="text-xs text-muted-foreground mb-4">Complaints grouped by type</p>
+          <p className="text-xs text-muted-foreground mb-4">{t("dash.by_category_desc")}</p>
           {categoryData.length > 0 ? (
             <div className="space-y-3">
               {categoryData.map((cat, idx) => {
@@ -276,7 +272,7 @@ const UserDashboard = () => {
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
               <Tag className="w-10 h-10 mb-2 opacity-30" />
-              <p className="text-sm">No complaints submitted yet</p>
+              <p className="text-sm">{t("dash.no_submitted")}</p>
             </div>
           )}
         </motion.div>
@@ -290,8 +286,8 @@ const UserDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          <h3 className="text-sm font-semibold text-foreground mb-1 uppercase tracking-wide">Your Activity</h3>
-          <p className="text-xs text-muted-foreground mb-4">Complaints submitted over time</p>
+          <h3 className="text-sm font-semibold text-foreground mb-1 uppercase tracking-wide">{t("dash.your_activity")}</h3>
+          <p className="text-xs text-muted-foreground mb-4">{t("dash.your_activity_desc")}</p>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={activityData}>
               <defs>
@@ -304,7 +300,7 @@ const UserDashboard = () => {
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(220, 10%, 55%)" }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-              <Area type="monotone" dataKey="count" stroke="hsl(220, 70%, 50%)" fill="url(#userActivityGrad)" strokeWidth={2.5} name="Complaints" dot={{ r: 3.5, fill: "hsl(220, 70%, 50%)", strokeWidth: 2, stroke: "hsl(0, 0%, 100%)" }} />
+              <Area type="monotone" dataKey="count" stroke="hsl(220, 70%, 50%)" fill="url(#userActivityGrad)" strokeWidth={2.5} name={t("common.complaints")} dot={{ r: 3.5, fill: "hsl(220, 70%, 50%)", strokeWidth: 2, stroke: "hsl(0, 0%, 100%)" }} />
             </AreaChart>
           </ResponsiveContainer>
         </motion.div>
@@ -319,16 +315,16 @@ const UserDashboard = () => {
         transition={{ delay: 0.6 }}
       >
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Recent Complaints</h2>
+          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">{t("dash.recent")}</h2>
           <Link to="/track" className="text-xs text-primary font-semibold flex items-center gap-1 hover:underline transition-colors">
-            View all <ArrowRight className="w-3.5 h-3.5" />
+            {t("dash.view_all")} <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
         {userComplaints.length === 0 ? (
           <div className="p-10 text-center text-muted-foreground">
             <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p className="font-medium">No complaints yet</p>
-            <p className="text-xs mt-1">Submit your first complaint to get started</p>
+            <p className="font-medium">{t("dash.no_complaints")}</p>
+            <p className="text-xs mt-1">{t("dash.no_complaints_sub")}</p>
           </div>
         ) : (
           <div className="divide-y divide-border">
