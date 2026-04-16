@@ -31,7 +31,7 @@ const SubmitComplaint = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      alert("Image must be less than 5MB");
+      alert(t("submit.image_too_large"));
       return;
     }
     const reader = new FileReader();
@@ -42,11 +42,11 @@ const SubmitComplaint = () => {
   const validatePhone = (value: string) => {
     const cleaned = value.replace(/\D/g, "");
     if (cleaned.length < 10) {
-      setPhoneError("Phone number must be at least 10 digits");
+      setPhoneError(t("submit.phone_min"));
       return false;
     }
     if (cleaned.length > 15) {
-      setPhoneError("Phone number is too long");
+      setPhoneError(t("submit.phone_max"));
       return false;
     }
     setPhoneError("");
@@ -75,8 +75,8 @@ const SubmitComplaint = () => {
     setContactEmail("");
     setImage(null);
     addNotification({
-      title: "Complaint Submitted",
-      message: `Your complaint "${title}" (${id}) has been submitted successfully.`,
+      title: t("notif.complaint_submitted"),
+      message: `${t("submit.complaint_id")} ${id}`,
       type: "success",
       complaintId: id,
     });
@@ -101,7 +101,7 @@ const SubmitComplaint = () => {
             <div>
               <p className="font-semibold text-foreground">{t("submit.success")}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Your complaint ID is <span className="font-mono font-bold text-primary">{success}</span>. You can track it from the Track Complaints page.
+                {t("submit.complaint_id")} <span className="font-mono font-bold text-primary">{success}</span>. {t("submit.success_track")}
               </p>
             </div>
             <button onClick={() => setSuccess(null)} className="ml-auto text-muted-foreground hover:text-foreground">✕</button>
@@ -115,14 +115,14 @@ const SubmitComplaint = () => {
             <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
               <FileText className="w-4 h-4 text-primary" /> {t("submit.field_title")}
             </label>
-            <Input placeholder="Brief title of your complaint" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <Input placeholder={t("submit.field_title_placeholder")} value={title} onChange={(e) => setTitle(e.target.value)} required />
           </div>
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
               <Tag className="w-4 h-4 text-primary" /> {t("submit.field_category")}
             </label>
             <Select value={category} onValueChange={(val) => setCategory(val as ComplaintCategory)}>
-              <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("submit.field_category_placeholder")} /></SelectTrigger>
               <SelectContent>
                 {CATEGORIES.map((cat) => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
@@ -134,16 +134,15 @@ const SubmitComplaint = () => {
             <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
               <AlignLeft className="w-4 h-4 text-primary" /> {t("submit.field_desc")}
             </label>
-            <Textarea placeholder="Describe the issue in detail..." rows={5} value={description} onChange={(e) => setDescription(e.target.value)} required />
+            <Textarea placeholder={t("submit.field_desc_placeholder")} rows={5} value={description} onChange={(e) => setDescription(e.target.value)} required />
           </div>
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
               <MapPin className="w-4 h-4 text-primary" /> {t("submit.field_location")}
             </label>
-            <Input placeholder="Where is the issue located?" value={location} onChange={(e) => setLocation(e.target.value)} required />
+            <Input placeholder={t("submit.field_location_placeholder")} value={location} onChange={(e) => setLocation(e.target.value)} required />
           </div>
 
-          {/* Phone Number */}
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
               <Phone className="w-4 h-4 text-primary" /> {t("submit.field_phone")} <span className="text-destructive">*</span>
@@ -159,7 +158,6 @@ const SubmitComplaint = () => {
             {phoneError && <p className="text-xs text-destructive mt-1">{phoneError}</p>}
           </div>
 
-          {/* Email (optional) */}
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
               <Mail className="w-4 h-4 text-primary" /> {t("submit.field_email")}
@@ -167,7 +165,6 @@ const SubmitComplaint = () => {
             <Input placeholder="your.email@example.com" type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
           </div>
 
-          {/* Image Upload */}
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
               <Camera className="w-4 h-4 text-primary" /> {t("submit.field_image")}
@@ -193,8 +190,8 @@ const SubmitComplaint = () => {
                 <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
                   <ImageIcon className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
-                <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Click to upload image</p>
-                <p className="text-xs text-muted-foreground">JPG, PNG up to 5MB</p>
+                <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">{t("submit.image_click")}</p>
+                <p className="text-xs text-muted-foreground">{t("submit.image_size")}</p>
               </button>
             )}
           </div>
