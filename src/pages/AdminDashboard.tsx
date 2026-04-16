@@ -34,6 +34,7 @@ const CATEGORY_COLORS = [
 
 const AdminDashboard = () => {
   const { complaints, isLoading } = useComplaints();
+  const { t } = useLanguage();
   const [trendView, setTrendView] = useState<"daily" | "weekly">("daily");
 
   const categoryData = useMemo(() => {
