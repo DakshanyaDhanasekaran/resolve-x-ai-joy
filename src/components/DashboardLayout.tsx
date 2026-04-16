@@ -27,7 +27,7 @@ const adminNav: NavItem[] = [
   { label: "Dashboard", labelKey: "nav.dashboard", path: "/admin", icon: LayoutDashboard },
   { label: "All Complaints", labelKey: "nav.all_complaints", path: "/admin/complaints", icon: FileText },
   { label: "Analytics", labelKey: "nav.analytics", path: "/admin", icon: BarChart3 },
-  { label: "Settings", labelKey: "nav.settings", path: "/admin", icon: Settings },
+  { label: "Settings", labelKey: "nav.settings", path: "/admin/settings", icon: Settings },
 ];
 
 const DashboardLayout = ({ children }: { children: ReactNode }) => {

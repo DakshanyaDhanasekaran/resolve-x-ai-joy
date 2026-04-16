@@ -17,6 +17,7 @@ import SubmitComplaint from "@/pages/SubmitComplaint";
 import TrackComplaints from "@/pages/TrackComplaints";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminComplaints from "@/pages/AdminComplaints";
+import AdminSettings from "@/pages/AdminSettings";
 import ComplaintDetail from "@/pages/ComplaintDetail";
 import NotFound from "@/pages/NotFound";
 import Chatbot from "@/components/Chatbot";
@@ -50,6 +51,7 @@ const AppRoutes = () => {
       {/* Admin routes */}
       <Route path="/admin" element={<ProtectedRoute role="admin"><DashboardLayout><AdminDashboard /></DashboardLayout></ProtectedRoute>} />
       <Route path="/admin/complaints" element={<ProtectedRoute role="admin"><DashboardLayout><AdminComplaints /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/admin/settings" element={<ProtectedRoute role="admin"><DashboardLayout><AdminSettings /></DashboardLayout></ProtectedRoute>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
